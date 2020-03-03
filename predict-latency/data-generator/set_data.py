@@ -28,7 +28,7 @@ def set_data(filename): # return type : ndarray
     print("----------tensor ver.---------------")
     print("----> X_train\n{}\n---->Y_train\n{}\n---->X_test\n{}\n---->Y_test\n{}".format(X_train, Y_train, X_test, Y_test))
 
-    return X_data, Y_data
+    return X_train, Y_train, X_test, Y_test
 
 def preprocess(X_data): # return type : ndarray
     # normalize : subtract min from elements and divide by (max - min)
