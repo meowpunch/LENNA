@@ -12,12 +12,21 @@ def set_data(filename): # return type : ndarray
 
     X_data = normalize(X_data)
 
+    train_ratio = 0.8
+    ratio = int(data.shape[0] * train_ratio)
+    X_train = X_data[:ratio,:]
+    X_test =  X_data[ratio:,:]
+    Y_train = Y_data[:ratio]
+    Y_test =  Y_data[ratio:]
+
     # convert data type from ndarray to tensor
-    X_data = torch.from_numpy(X_data)
-    Y_data = torch.from_numpy(Y_data)
+    X_train = torch.from_numpy(X_train)
+    Y_train = torch.from_numpy(Y_train)
+    X_test = torch.from_numpy(X_test)
+    Y_test = torch.from_numpy(Y_test)
 
     print("----------tensor ver.---------------")
-    print(X_data, '\n', Y_data)
+    print("----> X_train\n{}\n---->Y_train\n{}\n---->X_test\n{}\n---->Y_test\n{}".format(X_train, Y_train, X_test, Y_test))
 
     return X_data, Y_data
 
@@ -42,5 +51,3 @@ def normalize(X_data): # return type : ndarray
     # print("----------standarize--------------\n", "X_Data: ",X_data)
 
     return X_data
-
-X_data, Y_data = set_data('test.txt')
