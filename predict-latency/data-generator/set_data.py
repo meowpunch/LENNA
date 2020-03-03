@@ -4,11 +4,11 @@ import torch
 def set_data(filename): # return type : ndarray
     f = open(filename, 'r')
     data = np.genfromtxt(f, delimiter=' ')
-    print("--------------raw data--------------\n",data) # ',' between params and inference time : saved as nan
+#     print("--------------raw data--------------\n",data) # ',' between params and inference time : saved as nan
     X_data = data[:, 0:28] # should change index according to file
     Y_data = data[:, 29]
-    print("--------------X data--------------\n", X_data)
-    print("--------------Y data--------------\n", Y_data)
+#     print("--------------X data--------------\n", X_data)
+#     print("--------------Y data--------------\n", Y_data)
 
     X_data = preprocess(X_data)
 
@@ -25,8 +25,8 @@ def set_data(filename): # return type : ndarray
     X_test = torch.from_numpy(X_test)
     Y_test = torch.from_numpy(Y_test)
 
-    print("----------tensor ver.---------------")
-    print("----> X_train\n{}\n---->Y_train\n{}\n---->X_test\n{}\n---->Y_test\n{}".format(X_train, Y_train, X_test, Y_test))
+#     print("----------tensor ver.---------------")
+#     print("----> X_train\n{}\n---->Y_train\n{}\n---->X_test\n{}\n---->Y_test\n{}".format(X_train, Y_train, X_test, Y_test))
 
     return X_train, Y_train, X_test, Y_test
 
@@ -38,7 +38,7 @@ def preprocess(X_data): # return type : ndarray
         for j in range(X_data[:,i].shape[0]):
             e = X_data[:, i][j]
             X_data[:, i][j] = (e - min) / max
-    print("----------normalize--------------\n", "X_Data: ",X_data)
+#     print("----------normalize--------------\n", "X_Data: ",X_data)
 
     # standarize (if needed)
     for i in range(X_data.shape[1]):
@@ -48,6 +48,6 @@ def preprocess(X_data): # return type : ndarray
             e = X_data[:, i][j]
             X_data[:, i][j] = (e - mean) / std
 
-    print("----------standarize--------------\n", "X_Data: ",X_data)
+#     print("----------standarize--------------\n", "X_Data: ",X_data)
 
     return X_data
