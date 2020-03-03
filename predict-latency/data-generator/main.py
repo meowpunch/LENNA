@@ -10,7 +10,7 @@ if __name__ == '__main__':
     else:
         f = open(file_name, "w")
 
-    for i in range(100):
+    for i in range(9700):
         cfg, target, valid = generate_data()
         print("in main")
         print(valid)
