@@ -5,16 +5,40 @@ import argparse
 from models import *
 from calculate_latency import calculate_latency
 
+"""
+
+# (expansion, out_planes, num_blocks, stride)
+cfg = [(1,  16, 1, 2),
+       (6,  24, 2, 1),
+       (6,  40, 2, 2),
+       (6,  80, 3, 2),
+       (6, 112, 3, 1),
+       (6, 192, 4, 2),
+       (6, 320, 1, 2)]
+
+num_types: 1~15 integer  !아래 예제는 7! (input dimension 고정을 위햬)
+---
+expansion: 1~6 integer
+out_planes: 16~320 integer
+num_blocks: 1~20 integer
+stride: 1 ~ 8 integer
+
+assume that depth scale is fixed.
+
+"""
 # bucket 안 row 개수
 num_data = 100
 
 
 def generate_data():
 
+    valid = 0
+    target = -1
+
     expansion = np.random.randint(1, 7, size=(num_data,1))
     out_planes = np.random.randint(16, 321, size=(num_data,1))
-    num_blocks = np.random.randint(1, 16, size=(num_data,1))
-    stride = np.random.randint(1, 5, size=(num_data,1))
+    num_blocks = np.random.randint(1, 21, size=(num_data,1))
+    stride = np.random.randint(1, 9, size=(num_data,1))
 
     bucket = np.hstack([expansion, out_planes, num_blocks, stride])
     # print(bucket)
@@ -25,12 +49,21 @@ def generate_data():
     cfg = x_data.tolist()
     cfg = list(tuple(e) for e in cfg)
 
-    target = calculate_latency(cfg)
+    x = 32
+    for tup in cfg:
+        print(x, tup[3])
+        x = int(x/tup[3])
+    if x <= 1:
+        target = calculate_latency(cfg)
+        valid = 1
+    if x > 1:
+        valid = 0
 
     # print(cfg)
     # x_tensor = torch.from_numpy(x_data)
     # print(x_tensor)
 
+    print("in generate_data()")
     print(cfg)
     print(target)
 
@@ -41,15 +74,9 @@ def generate_data():
             serialized_cfg.append(str(a) + ' ')
 
     print("return ~")
-    return serialized_cfg, str(target)
+    return serialized_cfg, str(target), valid
 
 
 
 
 
-
-
-### convert from float64 to float32 for various reasons:
-### speedup, less memory usage, precision is enough.
-### when using GPU, fp16, fp32 or fp64 depends on
-### type of GPU (consumer/workstation/server).

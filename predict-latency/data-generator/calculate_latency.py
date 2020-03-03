@@ -6,37 +6,10 @@ import torch.backends.cudnn as cudnn
 import torchvision
 import torchvision.transforms as transforms
 
-
 import os
 import argparse
 
 from models import *
-
-
-# bucket 안 row 개수
-num_data = 100
-
-'''
-
-# (expansion, out_planes, num_blocks, stride)
-cfg = [(1,  16, 1, 2),
-       (6,  24, 2, 1),
-       (6,  40, 2, 2),
-       (6,  80, 3, 2),
-       (6, 112, 3, 1),
-       (6, 192, 4, 2),
-       (6, 320, 1, 2)]
-
-num_types: 1~15 integer  위의 예제는 7임
----
-expansion: 1~6 integer
-out_planes: 16~320 integer
-num_blocks: sum is 15 and each value is integer
-stride: 1 or 2 ~ 더 커질 수 있음.
-
-assume that depth scale is fixed.
-
-'''
 
 
 def calculate_latency(cfg):
@@ -110,9 +83,10 @@ def calculate_latency(cfg):
             # outputs = net(inputs)
             # loss = criterion(outputs, targets)
 
-            flag=0
-            with torch.autograd.profiler.profile(use_cuda=True) as prof:  # with torchprof.Profile(net, use_cuda=True) as prof:  #
-                outputs = net(inputs,count)
+            flag = 0
+            with torch.autograd.profiler.profile(
+                    use_cuda=True) as prof:  # with torchprof.Profile(net, use_cuda=True) as prof:  #
+                outputs = net(inputs, count)
                 # print(prof)
             print(prof.self_cpu_time_total)
             if count > 2:
@@ -124,9 +98,8 @@ def calculate_latency(cfg):
 
     print("over")
     print(each_y_sum, count)
-    # 1개 버리고 4개해서 평균냄. test경우는 train과 다르게 처음부터 비슷한 값을 지님.
-    latency = each_y_sum/(count-3)
+    # 1개 버리고 4개해서 평균냄. test 경우는 train 과 다르게 처음부터 비슷한 값을 지님.
+    latency = each_y_sum / (count - 3)
 
     print(latency)
-
     return latency

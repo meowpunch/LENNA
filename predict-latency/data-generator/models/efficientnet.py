@@ -96,14 +96,15 @@ class EfficientNet(nn.Module):
 def EfficientNetB0(cfg):
     # (expansion, out_planes, num_blocks, stride)
 
-    cfg = [(1,  16, 1, 1),
-           (6,  24, 2, 1),
-           (6,  40, 2, 4),
-           (6,  80, 3, 2),
-           (6, 112, 3, 4),
-           (6, 192, 4, 1),
-           (6, 320, 1, 1)]
+    # cfg = [(1,  16, 1, 1),
+    #        (6,  24, 2, 1),
+    #        (6,  40, 2, 4),
+    #        (6,  80, 3, 2),
+    #        (6, 112, 3, 4),
+    #        (6, 192, 4, 1),
+    #        (6, 320, 1, 1)]
 
+    print("in efficientnet")
     print(cfg)
     return EfficientNet(cfg)
 
