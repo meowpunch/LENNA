@@ -10,7 +10,7 @@ def set_data(filename): # return type : ndarray
     print("--------------X data--------------\n", X_data)
     print("--------------Y data--------------\n", Y_data)
 
-    X_data = normalize(X_data)
+    X_data = preprocess(X_data)
 
     train_ratio = 0.8
     ratio = int(data.shape[0] * train_ratio)
@@ -30,7 +30,7 @@ def set_data(filename): # return type : ndarray
 
     return X_data, Y_data
 
-def normalize(X_data): # return type : ndarray
+def preprocess(X_data): # return type : ndarray
     # normalize : subtract min from elements and divide by (max - min)
     for i in range(X_data.shape[1]):
         min = X_data[:, i].min() # min, max of column vector
@@ -40,14 +40,14 @@ def normalize(X_data): # return type : ndarray
             X_data[:, i][j] = (e - min) / max
     print("----------normalize--------------\n", "X_Data: ",X_data)
 
-    # # standarize (if needed)
-    # for i in range(X_data.shape[1]):
-    #     std = X_data[:,i].std()
-    #     mean = X_data[:,i].mean()
-    #     for j in range(X_data[:,i].shape[0]):
-    #         e = X_data[:, i][j]
-    #         X_data[:, i][j] = (e - mean) / std
-    #
-    # print("----------standarize--------------\n", "X_Data: ",X_data)
+    # standarize (if needed)
+    for i in range(X_data.shape[1]):
+        std = X_data[:,i].std()
+        mean = X_data[:,i].mean()
+        for j in range(X_data[:,i].shape[0]):
+            e = X_data[:, i][j]
+            X_data[:, i][j] = (e - mean) / std
+
+    print("----------standarize--------------\n", "X_Data: ",X_data)
 
     return X_data
