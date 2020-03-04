@@ -36,7 +36,7 @@ if __name__ == '__main__':
     # childs = {'$pa':'first child', '$pb':'second child'}
 
     children = []
-    for j in range(3):
+    for j in range(2):
         j += 4
         # fork 3 child process
         child_pid = os.fork()
