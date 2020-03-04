@@ -10,15 +10,16 @@ def set_data(filename): # return type : ndarray
 #     print("--------------X data--------------\n", X_data)
 #     print("--------------Y data--------------\n", Y_data)
 
-    X_data = preprocess(X_data) # standarize + normalize
+    X_data = preprocess(X_data) #standarize + normalize
+    Y_data = torch.from_numpy(Y_data).view(data.shape[0],1)
 
     # separate train data and test data & convert to tensor
     train_ratio = 0.8
     ratio = int(data.shape[0] * train_ratio)
     X_train = torch.from_numpy(X_data[:ratio,:])
-    X_test =  torch.from_numpy(X_data[ratio:,:])
-    Y_train = torch.from_numpy(Y_data[:ratio])
-    Y_test =  torch.from_numpy(Y_data[ratio:])
+    X_test = torch.from_numpy(X_data[ratio:,:])
+    Y_train = Y_data[:ratio,]
+    Y_test = Y_data[ratio:,]
 
 #     print("----------tensor ver.---------------")
 #     print("----> X_train\n{}\n---->Y_train\n{}\n---->X_test\n{}\n---->Y_test\n{}".format(X_train, Y_train, X_test, Y_test))
