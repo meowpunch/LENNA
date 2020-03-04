@@ -2,10 +2,8 @@ from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
-
 import argparse
-import torchvision
-import torchvision.transforms as transforms
+import os
 
 from models import *
 
@@ -23,7 +21,7 @@ def calculate_latency(cfg, testloader):
     # classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
     # Model
-    print('==> Building model..')
+    # print('==> Building model..')
     # net = VGG('VGG19')
     # net = ResNet18()
     # net = PreActResNet18()
@@ -65,6 +63,8 @@ def calculate_latency(cfg, testloader):
 
     # estimate latency of infer
     with torch.no_grad():
+        # 룹이 돌면서 testloader가 복제된다.
+
         for batch_idx, (inputs, targets) in enumerate(testloader):
             inputs, targets = inputs.to(device), targets.to(device)
             # outputs = net(inputs)
@@ -83,10 +83,10 @@ def calculate_latency(cfg, testloader):
             if count == 7:
                 break
 
-    print("each_y_sum, count")
-    print(each_y_sum, count)
+    # print("each_y_sum, count")
+    # print(each_y_sum, count)
     # 1개 버리고 4개해서 평균냄. test 경우는 train 과 다르게 처음부터 비슷한 값을 지님.
     latency = each_y_sum / (count - 3)
 
-    print("latency_avg: ", latency)
+    # print("latency_avg: ", latency)
     return latency

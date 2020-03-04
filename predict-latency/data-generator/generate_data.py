@@ -53,9 +53,9 @@ def generate_data(testloader):
     # x_tensor = torch.from_numpy(x_data)
     # print(x_tensor)
 
-    print("in generate_data()")
-    print(cfg)
-    print(target)
+    # print("in generate_data()")
+    # print(cfg)
+    # print(target)
 
     # 직렬화
     serialized_cfg = []
@@ -63,7 +63,7 @@ def generate_data(testloader):
         for a in e:
             serialized_cfg.append(str(a) + ' ')
 
-    print("return ~")
+    # print("return ~")
     return serialized_cfg, str(target)
 
 
