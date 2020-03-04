@@ -27,22 +27,23 @@ assume that depth scale is fixed.
 
 """
 # bucket 안 row 개수
-num_data = 100
+num_data = 10
 
 
 def generate_data(testloader):
 
+    np.random.seed()
     expansion = np.random.randint(1, 7, size=(num_data,1))
     out_planes = np.random.randint(16, 321, size=(num_data,1))
     num_blocks = np.random.randint(1, 21, size=(num_data,1))
     stride = np.random.randint(1, 9, size=(num_data,1))
 
     bucket = np.hstack([expansion, out_planes, num_blocks, stride])
-    # print(bucket)
+    print(bucket)
 
     num_types = np.random.randint(1, 10)
     x_data = bucket[np.random.choice(bucket.shape[0], 7, replace=False)]
-    # print(x_data)
+    print(x_data)
     cfg = x_data.tolist()
     cfg = list(tuple(e) for e in cfg)
 

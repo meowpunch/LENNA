@@ -36,7 +36,7 @@ if __name__ == '__main__':
     # childs = {'$pa':'first child', '$pb':'second child'}
 
     children = []
-    for j in range(3):
+    for j in range(4):
         # fork 3 child process
         child_pid = os.fork()
 
@@ -45,9 +45,9 @@ if __name__ == '__main__':
             # each child fork and execute new_process 5000 times
             for i in range(5000):
                 # for key in childs:
-                newpid = os.fork()
+                new_pid = os.fork()
 
-                if newpid == 0:
+                if new_pid == 0:
                     print("child %s" % (os.getpid()))
                     file_name += '_' + str(j)
                     # file_name is 'training_data_final_(0||1||2)
@@ -71,14 +71,14 @@ if __name__ == '__main__':
                     sys.exit(0)
 
                 else:
-                    print("parent(%s) got newpid:%s" % (os.getpid(), newpid))
+                    print("parent(%s) got new_pid:%s" % (os.getpid(), new_pid))
 
-                pid, status = os.waitpid(newpid, 0)
+                pid, status = os.waitpid(new_pid, 0)
                 print("wait returned, pid = %d, status = %d" % (pid, status))
 
         """
         else:
-            print("parent(%s) got newpid:%s" % (os.getpid(), child_pid))
+            print("parent(%s) got new_pid:%s" % (os.getpid(), child_pid))
             children.append(child_pid)
         """
 
