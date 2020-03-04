@@ -69,26 +69,26 @@ class EfficientNet(nn.Module):
         layers = []
         for expansion, out_planes, num_blocks, stride in self.cfg:
             strides = [stride] + [1]*(num_blocks-1)
-            print("strids: ", strides)
+            # print("strids: ", strides)
             for stride in strides:
                 layers.append(Block(in_planes, out_planes, expansion, stride))
                 in_planes = out_planes
         return nn.Sequential(*layers)
 
     def forward(self, x, count):
-        if count is 0:
-            print("1.", x.size())
+        # if count is 0:
+        #     print("1.", x.size())
         out = F.relu(self.bn1(self.conv1(x)))
-        if count is 0:
-            print("2.",out.size())
-            # print("...머여")
+        # if count is 0:
+        #     print("2.",out.size())
+        #     # print("...머여")
         out = self.layers(out)
         # print(out.size(0))
-        if count is 0:
-            print("3.",out.size())
+        # if count is 0:
+        #     print("3.",out.size())
         out = out.view(out.size(0), -1)
-        if count is 0:
-            print("4.",out.size())
+        # if count is 0:
+        #     print("4.",out.size())
         out = self.linear(out)
         return out
 
@@ -104,8 +104,8 @@ def EfficientNetB0(cfg):
     #        (6, 192, 4, 1),
     #        (6, 320, 1, 1)]
 
-    print("in efficientnet")
-    print(cfg)
+    # print("in efficientnet")
+    # print(cfg)
     return EfficientNet(cfg)
 
 

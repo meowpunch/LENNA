@@ -30,7 +30,7 @@ assume that depth scale is fixed.
 num_data = 100
 
 
-def generate_data():
+def generate_data(testloader):
 
     valid = 0
     target = -1
@@ -49,12 +49,12 @@ def generate_data():
     cfg = x_data.tolist()
     cfg = list(tuple(e) for e in cfg)
 
-    x = 32
+    x = 36  # x = 32 사실 32이가 좀 더 좋은 데이터 많이 뽑을수있는데 에러가 있음 ㅠㅠ
     for tup in cfg:
         print(x, tup[3])
         x = int(x/tup[3])
     if x <= 1:
-        target = calculate_latency(cfg)
+        target = calculate_latency(cfg, testloader)
         valid = 1
     if x > 1:
         valid = 0
