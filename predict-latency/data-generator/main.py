@@ -37,9 +37,12 @@ if __name__ == '__main__':
 
     children = []
     for j in range(3):
+        # fork 3 child process
         child_pid = os.fork()
 
         if child_pid == 0:
+
+            # each child fork and execute new_process 5000 times
             for i in range(5000):
                 # for key in childs:
                 newpid = os.fork()
@@ -47,6 +50,7 @@ if __name__ == '__main__':
                 if newpid == 0:
                     print("child %s" % (os.getpid()))
                     file_name += '_' + str(j)
+                    # file_name is 'training_data_final_(0||1||2)
                     # print(file_name)
                     if os.path.isfile(file_name) is True:
                         f = open(file_name, "a")
@@ -72,37 +76,40 @@ if __name__ == '__main__':
                 pid, status = os.waitpid(newpid, 0)
                 print("wait returned, pid = %d, status = %d" % (pid, status))
 
+        """
         else:
-            # print("parent(%s) got newpid:%s" % (os.getpid(), child_pid))
+            print("parent(%s) got newpid:%s" % (os.getpid(), child_pid))
             children.append(child_pid)
+        """
 
+    # parent waits 3 child process
     if os.getpid() is not 0:
         status = os.wait()
         print("\nIn parent process-")
         print("Terminated child's process id:", status[0])
         print("Signal number that killed the child process:", status[1])
 
-    # print(file_name)
+
     """
-    for j in range(100):
-        # make_bucket()
-        if os.path.isfile(file_name) is True:
-            f = open(file_name, "a")
-        else:
-            f = open(file_name, "w")
-
-        for i in range(100):
-            cfg, target = generate_data(test_ld)
-            # print("in main")
-            print("count: ", i)
-            # print(valid)
-            # print(cfg)
-            # print(target)
-            # f.writelines(cfg)
-            # f.write(', ')
-            # f.write(target)
-            # f.write('\n')
-
-        f.close()
-        # generate_data()
+        for j in range(100):
+            # make_bucket()
+            if os.path.isfile(file_name) is True:
+                f = open(file_name, "a")
+            else:
+                f = open(file_name, "w")
+    
+            for i in range(100):
+                cfg, target = generate_data(test_ld)
+                # print("in main")
+                print("count: ", i)
+                # print(valid)
+                # print(cfg)
+                # print(target)
+                # f.writelines(cfg)
+                # f.write(', ')
+                # f.write(target)
+                # f.write('\n')
+    
+            f.close()
+            # generate_data()
     """
