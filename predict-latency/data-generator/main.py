@@ -1,15 +1,13 @@
 from generate_data import generate_data
+
 import os
 
-def dataload():
-    parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
-    parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
-    parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
-    args = parser.parse_args()
+import torchvision
+import torchvision.transforms as transforms
+import torch
 
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    best_acc = 0  # best test -accuracy
-    start_epoch = 0  # start from epoch 0 or last checkpoint epoch
+def dataload():
+
 
     # Data
     print('==> Preparing data..')
@@ -39,6 +37,7 @@ if __name__ == '__main__':
         for i in range(100):
             cfg, target, valid = generate_data(test_ld)
             # print("in main")
+            print("count: ", i)
             # print(valid)
             # print(cfg)
             # print(target)

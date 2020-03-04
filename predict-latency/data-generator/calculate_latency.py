@@ -3,17 +3,22 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
+import argparse
 import torchvision
 import torchvision.transforms as transforms
-
-import os
-import argparse
 
 from models import *
 
 
 def calculate_latency(cfg, testloader):
+    parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
+    parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
+    parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
+    args = parser.parse_args()
 
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    best_acc = 0  # best test -accuracy
+    start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
     # classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -70,7 +75,7 @@ def calculate_latency(cfg, testloader):
                     use_cuda=True) as prof:  # with torchprof.Profile(net, use_cuda=True) as prof:  #
                 outputs = net(inputs, count)
                 # print(prof)
-            print(prof.self_cpu_time_total)
+            # print(prof.self_cpu_time_total)
             if count > 2:
                 each_y_sum += prof.self_cpu_time_total  # latency
             count += 1
@@ -83,5 +88,5 @@ def calculate_latency(cfg, testloader):
     # 1개 버리고 4개해서 평균냄. test 경우는 train 과 다르게 처음부터 비슷한 값을 지님.
     latency = each_y_sum / (count - 3)
 
-    print(latency)
+    print("latency_avg: ", latency)
     return latency

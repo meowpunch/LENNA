@@ -51,7 +51,7 @@ def generate_data(testloader):
 
     x = 36  # x = 32 사실 32이가 좀 더 좋은 데이터 많이 뽑을수있는데 에러가 있음 ㅠㅠ
     for tup in cfg:
-        print(x, tup[3])
+        # print(x, tup[3])
         x = int(x/tup[3])
     if x <= 1:
         target = calculate_latency(cfg, testloader)
