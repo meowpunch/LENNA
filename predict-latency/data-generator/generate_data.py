@@ -32,9 +32,6 @@ num_data = 100
 
 def generate_data(testloader):
 
-    valid = 0
-    target = -1
-
     expansion = np.random.randint(1, 7, size=(num_data,1))
     out_planes = np.random.randint(16, 321, size=(num_data,1))
     num_blocks = np.random.randint(1, 21, size=(num_data,1))
@@ -67,7 +64,7 @@ def generate_data(testloader):
             serialized_cfg.append(str(a) + ' ')
 
     print("return ~")
-    return serialized_cfg, str(target), valid
+    return serialized_cfg, str(target)
 
 
 

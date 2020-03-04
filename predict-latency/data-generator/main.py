@@ -35,17 +35,16 @@ if __name__ == '__main__':
             f = open(file_name, "w")
 
         for i in range(100):
-            cfg, target, valid = generate_data(test_ld)
+            cfg, target = generate_data(test_ld)
             # print("in main")
             print("count: ", i)
             # print(valid)
             # print(cfg)
             # print(target)
-            if valid is 3:
-                f.writelines(cfg)
-                f.write(', ')
-                f.write(target)
-                f.write('\n')
+            f.writelines(cfg)
+            f.write(', ')
+            f.write(target)
+            f.write('\n')
 
         f.close()
         # generate_data()
