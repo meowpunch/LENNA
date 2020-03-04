@@ -39,11 +39,11 @@ def generate_data(testloader):
     stride = np.random.randint(1, 9, size=(num_data,1))
 
     bucket = np.hstack([expansion, out_planes, num_blocks, stride])
-    print(bucket)
+    # print(bucket)
 
     num_types = np.random.randint(1, 10)
     x_data = bucket[np.random.choice(bucket.shape[0], 7, replace=False)]
-    print(x_data)
+    # print(x_data)
     cfg = x_data.tolist()
     cfg = list(tuple(e) for e in cfg)
 
