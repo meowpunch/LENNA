@@ -86,7 +86,8 @@ class EfficientNet(nn.Module):
         # print(out.size(0))
         # if count is 0:
         #     print("3.",out.size())
-        out = out.view(out.size(0), -1)
+        #     print(out.size(0), out.size(1), out.size(2), out.size(3))
+        out = out.view(out.size(0)*out.size(2)*out.size(3), -1)
         # if count is 0:
         #     print("4.",out.size())
         out = self.linear(out)

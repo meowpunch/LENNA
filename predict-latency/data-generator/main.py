@@ -24,7 +24,7 @@ def dataload():
 
 
 if __name__ == '__main__':
-    file_name = './training_data'
+    file_name = './training_data00'
     test_ld = dataload()
 
     for j in range(10):
@@ -41,7 +41,7 @@ if __name__ == '__main__':
             # print(valid)
             # print(cfg)
             # print(target)
-            if valid is 1:
+            if valid is 3:
                 f.writelines(cfg)
                 f.write(', ')
                 f.write(target)
