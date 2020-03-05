@@ -27,14 +27,12 @@ assume that depth scale is fixed.
 
 """
 # bucket 안 row 개수
-num_data = 100
+num_data = 10
 
 
-def generate_data():
+def generate_data(testloader):
 
-    valid = 0
-    target = -1
-
+    np.random.seed()
     expansion = np.random.randint(1, 7, size=(num_data,1))
     out_planes = np.random.randint(16, 321, size=(num_data,1))
     num_blocks = np.random.randint(1, 21, size=(num_data,1))
@@ -49,23 +47,16 @@ def generate_data():
     cfg = x_data.tolist()
     cfg = list(tuple(e) for e in cfg)
 
-    x = 32
-    for tup in cfg:
-        print(x, tup[3])
-        x = int(x/tup[3])
-    if x <= 1:
-        target = calculate_latency(cfg)
-        valid = 1
-    if x > 1:
-        valid = 0
+    target = calculate_latency(cfg, testloader)
+
 
     # print(cfg)
     # x_tensor = torch.from_numpy(x_data)
     # print(x_tensor)
 
-    print("in generate_data()")
-    print(cfg)
-    print(target)
+    # print("in generate_data()")
+    # print(cfg)
+    # print(target)
 
     # 직렬화
     serialized_cfg = []
@@ -73,8 +64,8 @@ def generate_data():
         for a in e:
             serialized_cfg.append(str(a) + ' ')
 
-    print("return ~")
-    return serialized_cfg, str(target), valid
+    # print("return ~")
+    return serialized_cfg, str(target)
 
 
 
