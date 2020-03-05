@@ -10,7 +10,7 @@ def set_data(filename): # return type : ndarray
     # print("--------------X data--------------\n", X_data)
     # print("--------------Y data--------------\n", Y_data)
 
-    X_data = preprocess(X_data) #standarize + normalize
+    X_data, Y_data = preprocess(X_data, Y_data) #standarize + normalize
     Y_data = torch.from_numpy(Y_data).view(data.shape[0],1)
 
     # separate train data and test data & convert to tensor
@@ -29,7 +29,7 @@ def set_data(filename): # return type : ndarray
 
     return X_train, Y_train, X_test, Y_test
 
-def preprocess(X_data): # return type : ndarray
+def preprocess(X_data, Y_data): # return type : ndarray
     # normalize : subtract min from elements and divide by (max - min)
     # print("--------------preprocess------------------------")
     for i in range(X_data.shape[2]):
@@ -55,4 +55,17 @@ def preprocess(X_data): # return type : ndarray
 
     # print("----------standarize--------------\n", "X_Data: ",X_data)
 
-    return X_data
+    # for Y
+    for i in range(Y_data.shape[0]):
+        min = Y_data.min()
+        max = Y_data.max()
+        e = Y_data[i]
+        Y_data[i] = (e - min) / max
+
+    for i in range(Y_data.shape[0]):
+        std = Y_data.std()
+        mean = Y_data.mean()
+        e = Y_data[i]
+        Y_data[i] = (e - mean) / std
+
+    return X_data, Y_data
