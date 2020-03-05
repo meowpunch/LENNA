@@ -26,10 +26,10 @@ def dataload():
 
 
 if __name__ == '__main__':
-    now_date = datetime.datetime.now()
-    print("now date: ", now_date)
+    # now_date = datetime.datetime.now()
+    # print("now date: ", now_date)
 
-    file_name = './training_data_final' # + str(now_date)[:10].replace("-", "")
+    file_name = 'training_data' # + str(now_date)[:10].replace("-", "")
     test_ld = dataload()
 
     print("main start pid: %s" % (os.getpid()))
@@ -45,18 +45,16 @@ if __name__ == '__main__':
 
             # each child fork and execute new_process 5000 times
             for i in range(5000):
-                # for key in childs:
                 new_pid = os.fork()
 
                 if new_pid == 0:
                     print("child %s" % (os.getpid()))
                     file_name += '_' + str(j)
-                    # file_name is 'training_data_final_(0||1||2)
-                    # print(file_name)
-                    if os.path.isfile(file_name) is True:
-                        f = open(file_name, "a")
+                    # file_name is 'training_data_final_(0||1||2 etc)
+                    if os.path.isfile('training-data/' + file_name) is True:
+                        f = open('training-data/' + file_name, "a")
                     else:
-                        f = open(file_name, "w")
+                        f = open('training-data/' + file_name, "w")
 
                     for i in range(20):
                         cfg, target = generate_data(test_ld)

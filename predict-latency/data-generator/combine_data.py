@@ -1,8 +1,14 @@
 import os
 
 
-def combine(file_list: list, result_name: str):
+def delete(file_list: list):
+    # delete previous files.
+    for file_name in file_list:
+        if os.path.exists(file_name):
+            os.remove(file_name)
 
+
+def combine(file_list: list, result_name: str):
     if os.path.isfile(result_name) is True:
         return print('result_name already exists')
     else:
@@ -11,6 +17,7 @@ def combine(file_list: list, result_name: str):
         duplicate_count = 0
         line_count = 0
 
+        # combine and check duplicates
         for file_name in file_list:
             for line in open(file_name, 'r'):
                 split = line.split(',')
@@ -28,15 +35,22 @@ def combine(file_list: list, result_name: str):
 
 
 if __name__ == '__main__':
-
     """
         which files is combined -> filename_list
     """
     filename_list = ['training_data_final_0',
-                 'training_data_final_1',
-                 'training_data_final_2',
-                 'training_data_final_3',
-                 'training_data_final_4',
-                 'training_data_final_5']
+                     'training_data_final_1',
+                     'training_data_final_2',
+                     'training_data_final_3',
+                     'training_data_final_4',
+                     'training_data_final_5',
+                     'combined_total_data_0',
+                     'training_data_1',
+                     'training_data_2']
 
-    combine(filename_list, result_name="combined_total_data_0")
+    combine(filename_list, result_name="combined_total_data_1")
+
+    """
+        Warning: Delete
+    """
+    # delete(filename_list)
