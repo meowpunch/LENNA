@@ -10,7 +10,7 @@ def set_data(filename): # return type : ndarray
 #     print("--------------X data--------------\n", X_data)
 #     print("--------------Y data--------------\n", Y_data)
 
-    X_data, Y_data = preprocess(X_data, Y_data) #standarize + normalize
+    X_data, Y_data, Y_min, Y_max, Y_mean, Y_std = preprocess(X_data, Y_data) #standarize + normalize
     Y_data = torch.from_numpy(Y_data).view(data.shape[0],1)
 
     # separate train data and test data & convert to tensor
@@ -24,7 +24,7 @@ def set_data(filename): # return type : ndarray
 #     print("----------tensor ver.---------------")
 #     print("----> X_train\n{}\n---->Y_train\n{}\n---->X_test\n{}\n---->Y_test\n{}".format(X_train, Y_train, X_test, Y_test))
 
-    return X_train, Y_train, X_test, Y_test
+    return X_train, Y_train, X_test, Y_test, Y_min, Y_max, Y_mean, Y_std
 
 def preprocess(X_data, Y_data): # return type : ndarray
     # for X
@@ -48,16 +48,17 @@ def preprocess(X_data, Y_data): # return type : ndarray
 #     print("----------standarize--------------\n", "X_Data: ",X_data)
 
     # for Y
+    y_std = Y_data.std()
+    y_mean = Y_data.mean()
+    y_min = Y_data.min()
+    y_max = Y_data.max()
+    
     for i in range(Y_data.shape[0]):
-        min = Y_data.min()
-        max = Y_data.max()
         e = Y_data[i]
-        Y_data[i] = (e - min) / max
+        Y_data[i] = (e - y_min) / y_max
 
     for i in range(Y_data.shape[0]):
-        std = Y_data.std()
-        mean = Y_data.mean()
         e = Y_data[i]
-        Y_data[i] = (e - mean) / std
+        Y_data[i] = (e - y_mean) / y_std
 
-    return X_data, Y_data
+    return X_data, Y_data, y_min, y_max, y_mean, y_std
