@@ -38,17 +38,18 @@ if __name__ == '__main__':
     """
         which files is combined -> filename_list
     """
-    filename_list = ['training_data_final_0',
-                     'training_data_final_1',
-                     'training_data_final_2',
-                     'training_data_final_3',
-                     'training_data_final_4',
-                     'training_data_final_5',
-                     'combined_total_data_0',
-                     'training_data_1',
-                     'training_data_2']
+    filename_list = ['training-data/training_data_00',
+                     'training-data/training_data_01',
+                     'training-data/training_data_02',
+                     'training-data/training_data_03',
+                     'training-data/training_data_04',
+                     'training-data/training_data_05',
+                     'combined_total_data_2',
+                     # 'training_data_1',
+                     # 'training_data_2'
+                     ]
 
-    combine(filename_list, result_name="combined_total_data_1")
+    combine(filename_list, result_name="combined_total_data_3")
 
     """
         Warning: Delete

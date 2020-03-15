@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
                 if new_pid == 0:
                     print("child %s" % (os.getpid()))
-                    file_name += '_' + str(j)
+                    file_name += '_0' + str(j)
                     # file_name is 'training_data_final_(0||1||2 etc)
                     if os.path.isfile('training-data/' + file_name) is True:
                         f = open('training-data/' + file_name, "a")
