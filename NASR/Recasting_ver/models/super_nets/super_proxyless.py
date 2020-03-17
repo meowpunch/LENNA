@@ -293,8 +293,14 @@ class SuperDartsRecastingNet(DartsRecastingNet):
         self.num_layers = num_layers
 
         input_channel = make_divisible(16, 8)
+        print("input_channel: ", input_channel)
 
         # first conv layer
+        """
+            About first conv layer
+            input_channel: 3
+            output_channel: 'input_channel' variable
+        """
         first_conv = ConvLayer(
             3, input_channel, kernel_size=3, stride=1, use_bn=True, act_func='relu', ops_order='weight_bn_act'
         )

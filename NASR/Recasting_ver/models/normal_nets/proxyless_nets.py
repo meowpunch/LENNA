@@ -217,19 +217,21 @@ class DartsRecastingBlock(MyModule):
         self.layer_list = nn.ModuleList(layer_list)
 
     def forward(self, x):
-        print(type(x))
-        print(x.shape)
+        # print(type(x))
+        # print(x.shape)
         x_list = [x]
 
         for op_list in self.layer_list :
+            print(op_list)
             x_out = op_list[0](x_list[0])
-            print(x_out.shape)
-            for x_in, op in zip(x_list[1:], op_list[1:]) :
+            # print(x_out.shape)
+            for x_in, op in zip(x_list[1:], op_list[1:]):
+                # print(x_in, op)
                 x_out = x_out + op(x_in)
-                print(x_out.shape)
-            print(x_out.shape)
+                # print(x_out.shape)
+            # print(x_out.shape)
             x_list += [x_out]
-            print(x_list[-1].shape)
+            # print(x_list[-1].shape)
         return x_list[-1]
 
     @property
@@ -395,7 +397,9 @@ class DartsRecastingNet(MyNetwork):
         for block in self.blocks:
             x = block(x)
         x = self.global_avg_pooling(x)
+        # print(x.shape)
         x = x.view(x.size(0), -1)  # flatten
+        # print(x.shape)
         x = self.classifier(x)
         return x
 
