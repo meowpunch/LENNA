@@ -80,8 +80,14 @@ class DataGenerator:
         with torch.no_grad():
             for data in self.test_loader:
                 images, labels = data
-                with torchprof.Profile(self.model, use_cuda=True) as prof:
-                    outputs = self.model(images)
-                print(prof.display(show_events=True))
+                # with torchprof.Profile(self.model, use_cuda=True) as prof:
+                #     outputs = self.model(images)
+                # print(prof.display(show_events=True))
                 # print(prof.self_cpu_time_total)
+
+                with torch.autograd.profiler.profile(
+                        use_cuda=True) as prof:
+                    outputs = self.model(images)
+                print(prof)
+                print(prof.self_cpu_time_total)
         pass
