@@ -397,9 +397,7 @@ class DartsRecastingNet(MyNetwork):
         for block in self.blocks:
             x = block(x)
         x = self.global_avg_pooling(x)
-        # print(x.shape)
         x = x.view(x.size(0), -1)  # flatten
-        # print(x.shape)
         x = self.classifier(x)
         return x
 

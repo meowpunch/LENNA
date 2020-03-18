@@ -349,6 +349,7 @@ class ArchSearchRunManager:
         update_schedule = self.arch_search_config.get_update_schedule(nBatch)
 
         for epoch in range(self.run_manager.start_epoch, self.run_manager.run_config.n_epochs):
+            print(list(self.net.architecture_parameters()))
             print('\n', '-' * 30, 'Train epoch: %d' % (epoch + 1), '-' * 30, '\n')
             batch_time = AverageMeter()
             data_time = AverageMeter()
@@ -393,7 +394,7 @@ class ArchSearchRunManager:
                     loss.backward()
                     self.run_manager.optimizer.step()  # update weight parameters
                     # unused modules back
-                    self.net.unused_modules_back()
+
                 # skip architecture parameter updates in the first epoch
                 if epoch > 0:
                     # update architecture parameters according to update_schedule

@@ -20,6 +20,8 @@ class LennaNet(DartsRecastingNet):
                  input_channel, output_channel,
                  n_classes=1000, bn_param=(0.1, 1e-3), dropout_rate=0,
                  ):
+        self._redundant_modules = None
+
         b_in_channel = input_channel
         b_out_channel = output_channel
 
@@ -44,6 +46,26 @@ class LennaNet(DartsRecastingNet):
         classifier = LinearLayer(b_out_channel, n_classes, dropout_rate=dropout_rate)
         super(LennaNet, self).__init__(first_conv, block, classifier)
 
+    def init_arch_params(self, init_type='normal', init_ratio=1e-3):
+        for param in self.architecture_parameters():
+            if init_type == 'normal':
+                param.data.normal_(0, init_ratio)
+            elif init_type == 'uniform':
+                param.data.uniform_(-init_ratio, init_ratio)
+            else:
+                raise NotImplementedError
+
+    def architecture_parameters(self):
+        for name, param in self.named_parameters():
+            if 'AP_path_alpha' in name:
+                yield param
+
+    def reset_binary_gates(self):
+        for m in self.redundant_modules:
+            try:
+                m.binarize()
+            except AttributeError:
+                print(type(m), ' do not support binarize')
 
     @staticmethod
     def build_normal_layers(candidate_ops, input_channel, out_channel, num_layers):
@@ -59,6 +81,7 @@ class LennaNet(DartsRecastingNet):
                                  )
 
                 layer += [edge]
+
             layer_list += [nn.ModuleList(layer)]
 
         return layer_list
@@ -88,6 +111,20 @@ class LennaNet(DartsRecastingNet):
                                  )
 
                 layer += [edge]
+
+                for e in layer:
+                    print(e.AP_path_alpha)
+
             layer_list += [nn.ModuleList(layer)]
 
         return layer_list
+
+    @property
+    def redundant_modules(self):
+        if self._redundant_modules is None:
+            module_list = []
+            for m in self.modules():
+                if m.__str__().startswith('MixedEdge'):
+                    module_list.append(m)
+            self._redundant_modules = module_list
+        return self._redundant_modules

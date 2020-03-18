@@ -1,5 +1,5 @@
 from Recasting_ver.lenna_net import LennaNet
-from Recasting_ver.cifar_arch_search import cifar_arch_search
+from Recasting_ver.cifar_arch_search_lenna import cifar_arch_search
 import torch
 import torchvision
 import torchvision.transforms as transforms
@@ -67,19 +67,38 @@ class DataGenerator:
 
     def process(self):
         """
-            TODO: logic comes here
+            TODO:
+                1. load dataset
+                2. init arch params & print
+                3. expect_latency inferring
         """
+
+        # cifar_arch_search()
+
         self.load_dataset()
-        self.infer()
+
+        self.model.init_arch_params()
+        print(list(self.model.architecture_parameters()))
+
+        self.expect_latency()
         return
 
-    def train(self):
-        pass
+    def expect_latency(self):
+        """
+            TODO:
+                1. open the binary gate by arch params
 
-    def infer(self):
+
+        :return:
+        """
         with torch.no_grad():
             for data in self.test_loader:
                 images, labels = data
+
+                # open the binary gate
+                self.model.reset_binary_gates()
+                # self.model.unused_modules_off()
+
                 # with torchprof.Profile(self.model, use_cuda=True) as prof:
                 #     outputs = self.model(images)
                 # print(prof.display(show_events=True))
@@ -90,4 +109,6 @@ class DataGenerator:
                     outputs = self.model(images)
                 print(prof)
                 print(prof.self_cpu_time_total)
+
+                # self.model.unused_modules_back()
         pass
