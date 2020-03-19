@@ -101,10 +101,11 @@ class DataGenerator:
                 self.model.reset_binary_gates()
                 # self.model.unused_modules_off()
 
-                with torchprof.Profile(self.model, use_cuda=True) as prof:
-                    outputs = self.model(images)
-                print(prof.display(show_events=True))
-                print(prof.self_cpu_time_total)
+                # TODO: find torchprof variables (block cpu time)
+                # with torchprof.Profile(self.model, use_cuda=True) as prof:
+                #     outputs = self.model(images)
+                # print(prof.display(show_events=True))
+                # print(prof.self_cpu_time_total)
 
                 with torch.autograd.profiler.profile(
                         use_cuda=True) as prof:

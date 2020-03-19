@@ -222,7 +222,7 @@ class DartsRecastingBlock(MyModule):
         x_list = [x]
 
         for op_list in self.layer_list :
-            print(op_list)
+            # print(op_list)
             x_out = op_list[0](x_list[0])
             # print(x_out.shape)
             for x_in, op in zip(x_list[1:], op_list[1:]):
