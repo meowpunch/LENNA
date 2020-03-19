@@ -6,6 +6,7 @@ import torchvision.transforms as transforms
 
 import torchprof
 
+# constant
 normal_ops = [
     '3x3_Conv', '5x5_Conv',
     '3x3_ConvDW', '5x5_ConvDW',
@@ -34,18 +35,22 @@ class DataGenerator:
 
     """
 
-    def __init__(self):
+    def __init__(self, mode=1):
         self.model = LennaNet(self, num_layers=num_layers,
                               normal_ops=normal_ops, reduction_ops=reduction_ops, block_type=block_type,
                               input_channel=input_channel, output_channel=output_channel,
                               n_classes=10)  # for cifar10
+        self.mode = mode
         self.train_loader = None
         self.test_loader = None
 
         return
 
     def execute(self):
-        return self.process()
+        if self.mode is 0:
+            cifar_arch_search()
+        elif self.mode is 1:
+            self.process()
 
     def load_dataset(self):
         transform = transforms.Compose(
@@ -72,13 +77,10 @@ class DataGenerator:
                 2. init arch params & print
                 3. expect_latency inferring
         """
-
-        # cifar_arch_search()
-
         self.load_dataset()
 
         self.model.init_arch_params()
-        print(list(self.model.architecture_parameters()))
+        # print(list(self.model.architecture_parameters()))
 
         self.expect_latency()
         return
@@ -99,10 +101,10 @@ class DataGenerator:
                 self.model.reset_binary_gates()
                 # self.model.unused_modules_off()
 
-                # with torchprof.Profile(self.model, use_cuda=True) as prof:
-                #     outputs = self.model(images)
-                # print(prof.display(show_events=True))
-                # print(prof.self_cpu_time_total)
+                with torchprof.Profile(self.model, use_cuda=True) as prof:
+                    outputs = self.model(images)
+                print(prof.display(show_events=True))
+                print(prof.self_cpu_time_total)
 
                 with torch.autograd.profiler.profile(
                         use_cuda=True) as prof:

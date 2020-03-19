@@ -2,7 +2,12 @@ from Recasting_ver.core import DataGenerator
 
 
 def main():
-    dg = DataGenerator()
+    """
+        0: SuperDartsRecastingNet
+        1: LennaNet
+    :return:
+    """
+    dg = DataGenerator(mode=1)
     dg.execute()
 
 
