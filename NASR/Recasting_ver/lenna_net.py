@@ -69,6 +69,12 @@ class LennaNet(DartsRecastingNet):
 
     @staticmethod
     def build_normal_layers(candidate_ops, input_channel, out_channel, num_layers):
+        """
+            build normal layers for one block.
+
+
+        :return: layer_list will be args for DartsRecastingBlock(arg)
+        """
         layer_list = []
         for num_edges in range(num_layers):
             layer = []

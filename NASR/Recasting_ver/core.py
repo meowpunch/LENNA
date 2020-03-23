@@ -6,7 +6,11 @@ import torchvision.transforms as transforms
 
 import torchprof
 
+
+
 # constant
+from util.logger import init_logger
+
 normal_ops = [
     '3x3_Conv', '5x5_Conv',
     '3x3_ConvDW', '5x5_ConvDW',
@@ -26,16 +30,16 @@ reduction_ops = [
 input_channel = 100
 output_channel = 100
 num_layers = 5
-block_type = 0  # 0 -> reduction , 1-> normal  // should be one hot encoded
+block_type = 0  # 0: reduction , 1: normal  // should be one hot encoded
 
 
 class DataGenerator:
     """
-        TODO: DataGenerator for predicting the latency of cell
-
+        This class will predict the latency of cell
     """
 
     def __init__(self, mode=1):
+        self.logger = init_logger()
         self.model = LennaNet(self, num_layers=num_layers,
                               normal_ops=normal_ops, reduction_ops=reduction_ops, block_type=block_type,
                               input_channel=input_channel, output_channel=output_channel,
@@ -43,7 +47,6 @@ class DataGenerator:
         self.mode = mode
         self.train_loader = None
         self.test_loader = None
-
         return
 
     def execute(self):
@@ -77,6 +80,7 @@ class DataGenerator:
                 2. init arch params & print
                 3. expect_latency inferring
         """
+        self.logger.info("load dataset")
         self.load_dataset()
 
         self.model.init_arch_params()
