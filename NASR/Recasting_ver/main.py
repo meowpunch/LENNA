@@ -3,6 +3,7 @@ from Recasting_ver.core import DataGenerator
 
 def main():
     """
+        TODO:
         0: SuperDartsRecastingNet
         1: LennaNet
     :return:

@@ -1,9 +1,13 @@
 # ProxylessNAS: Direct Neural Architecture Search on Target Task and Hardware
 # Han Cai, Ligeng Zhu, Song Han
 # International Conference on Learning Representations (ICLR), 2019.
+import torchprof
 
 from Recasting_ver.modules.layers import *
 import json
+
+from util.latency import get_time
+from util.logger import init_logger
 
 
 def proxyless_base(net_config=None, n_classes=1000, bn_param=(0.1, 1e-3), dropout_rate=0):
@@ -208,6 +212,7 @@ class BottleneckBlock(MyModule):
 
         return flops1 + flops2 + flops3 + flops4, self.forward(x)
 
+
 ## Modifier : shorm21
 class DartsRecastingBlock(MyModule):
 
@@ -217,21 +222,13 @@ class DartsRecastingBlock(MyModule):
         self.layer_list = nn.ModuleList(layer_list)
 
     def forward(self, x):
-        # print(type(x))
-        # print(x.shape)
         x_list = [x]
 
         for op_list in self.layer_list :
-            # print(op_list)
             x_out = op_list[0](x_list[0])
-            # print(x_out.shape)
             for x_in, op in zip(x_list[1:], op_list[1:]):
-                # print(x_in, op)
                 x_out = x_out + op(x_in)
-                # print(x_out.shape)
-            # print(x_out.shape)
             x_list += [x_out]
-            # print(x_list[-1].shape)
         return x_list[-1]
 
     @property
@@ -383,10 +380,11 @@ class ProxylessNASNets(MyNetwork):
 
 # Modifier : shorm21
 class DartsRecastingNet(MyNetwork):
-
     def __init__(self, first_conv, blocks, classifier):
         super(DartsRecastingNet, self).__init__()
 
+        self.latency = None
+        self.logger = init_logger()
         self.first_conv = first_conv
         self.blocks = nn.ModuleList(blocks)
         self.global_avg_pooling = nn.AdaptiveAvgPool2d(1)
@@ -394,8 +392,14 @@ class DartsRecastingNet(MyNetwork):
 
     def forward(self, x):
         x = self.first_conv(x)
+
         for block in self.blocks:
-            x = block(x)
+            with torchprof.Profile(block, use_cuda=True) as prof:
+                x = block(x)
+            self.latency = sum(get_time(prof))
+            # self.logger.debug(sum(get_time(prof)))
+            # self.logger.debug(prof.display(show_events=False))
+
         x = self.global_avg_pooling(x)
         x = x.view(x.size(0), -1)  # flatten
         x = self.classifier(x)
@@ -420,6 +424,7 @@ class DartsRecastingNet(MyNetwork):
         x = x.view(x.size(0), -1)  # flatten
         x = self.classifier(x)
         return x
+
 
     @property
     def module_str(self):

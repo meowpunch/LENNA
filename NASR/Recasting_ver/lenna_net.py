@@ -14,6 +14,8 @@ class LennaNet(DartsRecastingNet):
                 first conv -> one block -> pool -> classifier
             we calculate latency of one block
     """
+    def get_latency(self):
+        return self.latency
 
     def __init__(self, num_blocks, num_layers,
                  normal_ops, reduction_ops, block_type,

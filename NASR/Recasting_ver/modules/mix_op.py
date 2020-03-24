@@ -113,7 +113,7 @@ class MixedEdge(MyModule):
         print(self.AP_path_wb)
         print(self.active_index)
         print(self.inactive_index)
-        print(self.active_op)
+        print(type(self.active_op))
         if MixedEdge.MODE == 'full' or MixedEdge.MODE == 'two':
             output = 0
             for _i in self.active_index:
