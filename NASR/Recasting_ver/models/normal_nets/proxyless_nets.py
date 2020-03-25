@@ -394,9 +394,9 @@ class DartsRecastingNet(MyNetwork):
         x = self.first_conv(x)
 
         for block in self.blocks:
-            with torchprof.Profile(block, use_cuda=True) as prof:
-                x = block(x)
-            self.latency = sum(get_time(prof))
+            # with torchprof.Profile(block, use_cuda=True) as prof:
+            x = block(x)
+            # self.latency = sum(get_time(prof))
             # self.logger.debug(sum(get_time(prof)))
             # self.logger.debug(prof.display(show_events=False))
 

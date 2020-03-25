@@ -13,8 +13,8 @@ def get_time(prof, show_events=False):
 
     for trace in traces:
         [path, leaf, module] = trace
+        print(trace)
 
-        # self.logger.debug(trace)
         events = [te for t_events in trace_events[path] for te in t_events]
         for depth, name in enumerate(path, 1):
             if depth == len(path) and (

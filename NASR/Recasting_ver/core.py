@@ -9,6 +9,7 @@ import torchprof
 
 # constant
 from Recasting_ver.models.normal_nets.proxyless_nets import DartsRecastingBlock
+from util.latency import get_time
 from util.logger import init_logger
 
 normal_ops = [
@@ -17,8 +18,8 @@ normal_ops = [
     '3x3_dConv', '5x5_dConv',
     '3x3_dConvDW', '5x5_dConvDW',
     '3x3_maxpool', '3x3_avgpool',
-    'Zero',
-    'Identity',
+    # 'Zero',
+    # 'Identity',
 ]
 reduction_ops = [
     '3x3_Conv', '5x5_Conv',
@@ -29,7 +30,7 @@ reduction_ops = [
 ]
 input_channel = 1000  # 1~1000
 output_channel = 1000  # 1~1000
-num_layers = 2  # 1~10
+num_layers = 5  # 1~10
 block_type = 0  # 0 -> reduction , 1-> normal  // should be one hot encoded
 
 
@@ -107,42 +108,12 @@ class DataGenerator:
                 # self.model.unused_modules_off()
 
                 # TODO: find torchprof variables (block cpu time)
-                # with torchprof.Profile(self.model, use_cuda=True) as prof:
-                outputs = self.model(images)
-
+                with torchprof.Profile(self.model, use_cuda=True) as prof:
+                    outputs = self.model(images)
+                self.logger.debug(get_time(prof, show_events=False))
                 self.logger.debug(self.model.get_latency())
                 # self.logger.debug(prof.display(show_events=False))
 
                 # self.model.unused_modules_back()
 
-    def get_time(self, prof, show_events=False):
-        """
-        return: list of cpu total time (unit: ms)
-        """
-        traces = prof.traces
-        trace_events = prof.trace_profile_events
-        paths = prof.paths
-
-        # self.logger.debug(traces)
-
-        cpu_times = []
-
-        for trace in traces:
-            [path, leaf, module] = trace
-            self.logger.debug(leaf)
-            self.logger.debug(type(module))
-
-            if isinstance(module, DartsRecastingBlock):
-                # self.logger.debug(trace)
-                events = [te for t_events in trace_events[path] for te in t_events]
-                for depth, name in enumerate(path, 1):
-                    if depth == len(path) and (
-                            (paths is None and leaf) or (paths is not None and path in paths)
-                    ):
-                        if show_events:
-                            for event in events:
-                                cpu_times.append(event.cpu_time_total)
-                        else:
-                            cpu_times.append(sum([e.cpu_time_total for e in events]))
-        return cpu_times
 
