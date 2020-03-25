@@ -48,14 +48,13 @@ class LatencyEstimator:
         self.latency = None
 
         # move model to GPU if available
-        if torch.cuda.is_available():
-            self.device = torch.device('cuda:0')
-            self.model = torch.nn.DataParallel(self.model)
-            self.model.to(self.device)
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.model = self.model.to(device)
+        if device == 'cuda':
+            self.p_model = torch.nn.DataParallel(self.model)
             cudnn.benchmark = True
-        else:
-            raise ValueError
-        return
+
+        self.model.eval()
 
     def execute(self):
         return self.process()
@@ -97,7 +96,7 @@ class LatencyEstimator:
             count = 1
             l_sum = 0
             for data in self.test_loader:
-                if count > 2:
+                if count > 20:
                     break
 
                 images, labels = data
@@ -107,7 +106,7 @@ class LatencyEstimator:
                 # self.model.unused_modules_off()
 
                 with torchprof.Profile(self.model, use_cuda=True) as prof:
-                    outputs = self.model(images)
+                    outputs = self.p_model(images)
 
                 # get latency
                 latency = sum(get_time(prof, target="blocks", show_events=False))

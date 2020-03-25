@@ -10,9 +10,9 @@ from utils.logger import init_logger
 class DataPipeline:
     def __init__(self):
         self.logger = init_logger()
-
-        self.data_path = "training_data"
-        self.file_name = "training_data"
+        
+        # constant
+        self.data_path = "training_data/data"
 
         self.X = None
         self.y = None
@@ -38,19 +38,24 @@ class DataPipeline:
         if os.getpid() is not 0:
             status = os.wait()
             self.logger.info("\nIn parent process-")
-            self.logger.info("Terminated child's process id:", status[0])
-            self.logger.info("Signal number that killed the child process:", status[1])
+            self.logger.info("Terminated child's process id: {s}".format(s=status[0]))
+            self.logger.info("Signal number that killed the child process: {s}".format(s=status[1]))
         return
 
     def save_file(self):
-        if os.path.isfile('training_data/' + self.file_name) is True:
-            f = open('training_data/' + self.file_name, "a")
+        destination = self.data_path + str(os.getpid())
+        self.logger.info(destination)
+        if os.path.isfile(destination) is True:
+            f = open(destination, "a")
         else:
-            f = open('training_data/' + self.file_name, "w")
+            f = open(destination, "w")
 
-        f.writelines(self.X)
+        f.writelines(' '.join(
+            list(map(lambda x: str(x), self.X))
+        ))
+
         f.write(', ')
-        f.write(self.y)
+        f.write(str(self.y))
         f.write('\n')
 
         f.close()
