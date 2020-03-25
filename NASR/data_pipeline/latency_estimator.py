@@ -29,8 +29,7 @@ reduction_ops = [
 
 class LatencyEstimator:
     """
-        TODO: DataGenerator for predicting the latency of cell
-
+        This class will estimate latency and return latency & arch params
     """
 
     def __init__(self, block_type, input_channel, output_channel, num_layers):
@@ -61,7 +60,7 @@ class LatencyEstimator:
 
     def process(self):
         """
-        return: latency of one block
+        return: latency of one block & arch params
         """
         # load cifar10 dataset
         self.load_dataset()
@@ -71,7 +70,10 @@ class LatencyEstimator:
 
         # estimate latency of blocks
         self.expect_latency()
-        return self.latency
+        return self.latency, list(map(
+            lambda param: torch.Tensor.cpu(param).detach().numpy(),
+            self.model.architecture_parameters()
+        ))
 
     def load_dataset(self):
         transform = transforms.Compose(

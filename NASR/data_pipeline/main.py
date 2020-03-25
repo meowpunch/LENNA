@@ -43,7 +43,7 @@ class DataPipeline:
         return
 
     def save_file(self):
-        destination = self.data_path + str(os.getpid())
+        destination = self.data_path # + str(os.getpid())
         self.logger.info(destination)
         if os.path.isfile(destination) is True:
             f = open(destination, "a")
