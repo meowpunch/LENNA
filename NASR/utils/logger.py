@@ -6,8 +6,8 @@ import os
 
 def init_logger():
     file_dir = os.path.dirname(__file__)
-    fpath = os.path.join(file_dir, 'logging.yaml')
-    with open(fpath) as file:
+    f_path = os.path.join(file_dir, 'logging.yaml')
+    with open(f_path) as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
 
     logging.config.dictConfig(config)

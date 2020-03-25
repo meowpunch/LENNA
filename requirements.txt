@@ -1,3 +1,4 @@
+torchprof
 PyYAML
 attrs==19.3.0
 backcall==0.1.0

@@ -6,9 +6,6 @@ import torchprof
 from Recasting_ver.modules.layers import *
 import json
 
-from util.latency import get_time
-from util.logger import init_logger
-
 
 def proxyless_base(net_config=None, n_classes=1000, bn_param=(0.1, 1e-3), dropout_rate=0):
     assert net_config is not None, 'Please input a network config'
@@ -22,6 +19,7 @@ def proxyless_base(net_config=None, n_classes=1000, bn_param=(0.1, 1e-3), dropou
     net.set_bn_param(momentum=bn_param[0], eps=bn_param[1])
 
     return net
+
 
 # Modifier : shorm21
 # def rescasting_base(net_config=None, n_classes=10, bn_param=(0.1, 1e-3), dropout_rate=0):
@@ -100,6 +98,7 @@ class MobileInvertedResidualBlock(MyModule):
 
         return flops1 + flops2, self.forward(x)
 
+
 class ResidualBlock(MyModule):
 
     def __init__(self, conv1, conv2, shortcut):
@@ -110,20 +109,21 @@ class ResidualBlock(MyModule):
         self.shortcut = shortcut
 
     def forward(self, x):
-        if self.shortcut is None :
+        if self.shortcut is None:
             res = self.shortcut(x)
-        else :
+        else:
             res = x
 
         x = conv1(x)
         x = conv2(x)
 
-        return x + res 
+        return x + res
 
     @property
     def module_str(self):
         return '(%s, %s, %s)' % (
-            self.conv1.module_str, self.conv2.module_str, self.shortcut.module_str if self.shortcut is not None else None
+            self.conv1.module_str, self.conv2.module_str,
+            self.shortcut.module_str if self.shortcut is not None else None
         )
 
     @property
@@ -153,6 +153,7 @@ class ResidualBlock(MyModule):
 
         return flops1 + flops2 + flops3, self.forward(x)
 
+
 class BottleneckBlock(MyModule):
 
     def __init__(self, conv1, conv2, conv3, shortcut):
@@ -164,16 +165,16 @@ class BottleneckBlock(MyModule):
         self.shortcut = shortcut
 
     def forward(self, x):
-        if self.shortcut is None :
+        if self.shortcut is None:
             res = self.shortcut(x)
-        else :
+        else:
             res = x
 
         x = conv1(x)
         x = conv2(x)
         x = conv3(x)
 
-        return x + res 
+        return x + res
 
     @property
     def module_str(self):
@@ -213,7 +214,7 @@ class BottleneckBlock(MyModule):
         return flops1 + flops2 + flops3 + flops4, self.forward(x)
 
 
-## Modifier : shorm21
+# Modifier : shorm21
 class DartsRecastingBlock(MyModule):
 
     def __init__(self, layer_list):
@@ -224,7 +225,7 @@ class DartsRecastingBlock(MyModule):
     def forward(self, x):
         x_list = [x]
 
-        for op_list in self.layer_list :
+        for op_list in self.layer_list:
             x_out = op_list[0](x_list[0])
             for x_in, op in zip(x_list[1:], op_list[1:]):
                 x_out = x_out + op(x_in)
@@ -234,7 +235,7 @@ class DartsRecastingBlock(MyModule):
     @property
     def module_str(self):
         str_ = '['
-        for op_list in self.layer_list :
+        for op_list in self.layer_list:
             sub_str = '['
             for op in op_list:
                 sub_str += op.module_str + ', '
@@ -243,13 +244,13 @@ class DartsRecastingBlock(MyModule):
         str_ += ']'
 
         return 'Recasting (%s)' % (
-                str_
+            str_
         )
-    
+
     @property
     def arch_params(self):
         str_ = '['
-        for op_list in self.layer_list :
+        for op_list in self.layer_list:
             sub_str = '['
             for op in op_list:
                 sub_str += str(op.arch_params) + ', '
@@ -258,13 +259,13 @@ class DartsRecastingBlock(MyModule):
         str_ += ']'
 
         return 'Recasting (%s)' % (
-                str_
+            str_
         )
 
     @property
     def config(self):
         config_list = []
-        for op_list in self.layer_list :
+        for op_list in self.layer_list:
             configs = []
             for op in op_list:
                 configs += [op.config]
@@ -290,10 +291,10 @@ class DartsRecastingBlock(MyModule):
     def get_flops(self, x):
         flops = 0
         x_list = [x]
-        for op_list in self.layer_list :
+        for op_list in self.layer_list:
             f, x_out = op_list[0].get_flops(x_list[0])
             flops += f
-            for x_in, op in zip(x_list[1:], op_list[1:]) :
+            for x_in, op in zip(x_list[1:], op_list[1:]):
                 f_t, x_out_t = op.get_flops(x_in)
                 f += f_t
                 x_out += x_out_t
@@ -302,6 +303,7 @@ class DartsRecastingBlock(MyModule):
             x_list += [x_out]
 
         return flops, self.forward(x)
+
 
 class ProxylessNASNets(MyNetwork):
 
@@ -378,13 +380,12 @@ class ProxylessNASNets(MyNetwork):
         flop += delta_flop
         return flop, x
 
+
 # Modifier : shorm21
 class DartsRecastingNet(MyNetwork):
     def __init__(self, first_conv, blocks, classifier):
         super(DartsRecastingNet, self).__init__()
 
-        self.latency = None
-        self.logger = init_logger()
         self.first_conv = first_conv
         self.blocks = nn.ModuleList(blocks)
         self.global_avg_pooling = nn.AdaptiveAvgPool2d(1)
@@ -405,26 +406,25 @@ class DartsRecastingNet(MyNetwork):
         x = self.classifier(x)
         return x
 
-    def forward_recasting(self, x, block_idx = None):
+    def forward_recasting(self, x, block_idx=None):
         x = self.first_conv(x)
         for i, block in enumerate(self.blocks):
             x = block(x)
-            if i == block_idx :
+            if i == block_idx:
                 return x
         x = self.global_avg_pooling(x)
         x = x.view(x.size(0), -1)  # flatten
         x = self.classifier(x)
         return x
 
-    def forward_remain(self, x, block_idx = None):
+    def forward_remain(self, x, block_idx=None):
         for i, block in enumerate(self.blocks):
-            if i > block_idx :
+            if i > block_idx:
                 x = block(x)
         x = self.global_avg_pooling(x)
         x = x.view(x.size(0), -1)  # flatten
         x = self.classifier(x)
         return x
-
 
     @property
     def module_str(self):

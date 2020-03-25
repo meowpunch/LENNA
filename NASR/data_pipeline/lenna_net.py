@@ -6,13 +6,11 @@ from Recasting_ver.modules.mix_op import MixedEdge, build_candidate_ops
 
 class LennaNet(DartsRecastingNet):
     """
-        Darts search structure
-        first_conv -> Blocks(Cells) -> pool -> classifier
-        TODO:
-            we evaluate just one block(cell)
-            LennaNet :
-                first conv -> one block -> pool -> classifier
-            we calculate latency of one block
+        SuperDartsRecastingNet:
+            first_conv -> Blocks(Cells) -> pool -> classifier
+
+        LennaNet:
+            first conv -> one block -> pool -> classifier
     """
     def get_latency(self):
         return self.latency
@@ -120,8 +118,8 @@ class LennaNet(DartsRecastingNet):
 
                 layer += [edge]
 
-                for e in layer:
-                    print(e.AP_path_alpha)
+                # for e in layer:
+                #     print(e.AP_path_alpha)
 
             layer_list += [nn.ModuleList(layer)]
 
