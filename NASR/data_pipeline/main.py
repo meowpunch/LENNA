@@ -19,6 +19,7 @@ class DataPipeline:
 
     def process(self):
         """
+            TODO: return value
         return: pandas DataFrame and save file
         """
         self.logger.info(("main start pid: %s" % (os.getpid())))
@@ -45,14 +46,13 @@ class DataPipeline:
     def save_file(self):
         destination = self.data_path # + str(os.getpid())
         self.logger.info(destination)
+
         if os.path.isfile(destination) is True:
             f = open(destination, "a")
         else:
             f = open(destination, "w")
 
-        f.writelines(' '.join(
-            list(map(lambda x: str(x), self.X))
-        ))
+        f.writelines(' '.join(list(map(lambda x: str(x), self.X))))
 
         f.write(', ')
         f.write(str(self.y))
@@ -63,12 +63,7 @@ class DataPipeline:
 
 
 def main():
-    """
-        TODO:
-        0: SuperDartsRecastingNet
-        1: LennaNet
-    :return:
-    """
+
     pipeline = DataPipeline()
     pipeline.process()
 
