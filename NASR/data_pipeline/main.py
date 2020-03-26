@@ -1,18 +1,23 @@
 import os
 import sys
+from multiprocessing.pool import Pool
+import multiprocessing
 
 import torch
 
 from data_pipeline.data_generator import DataGenerator
+from utils.daemon import MyPool
 from utils.logger import init_logger
 
 
 class DataPipeline:
-    def __init__(self):
-        self.logger = init_logger()
-        
+    def __init__(self, arg):
+        self.logger = multiprocessing.get_logger()
+
         # constant
-        self.data_path = "training_data/data"
+        self.destination = "training_data/data{postfix}".format(
+            postfix=arg
+        )
 
         self.X = None
         self.y = None
@@ -25,32 +30,27 @@ class DataPipeline:
         self.logger.info(("main start pid: %s" % (os.getpid())))
 
         # parallel process
-        for i in range(4):
-            child_pid = os.fork()
+        # for i in range(4):
+        shadow = os.fork()
 
-            if child_pid == 0:
-                self.logger.info("child %s" % (os.getpid()))
-                dg = DataGenerator()
-                self.X, self.y = dg.execute()
+        if shadow == 0:
+            self.logger.info("child %s" % (os.getpid()))
+            dg = DataGenerator()
+            self.X, self.y = dg.execute()
 
-                self.save_file()
+            self.save_file()
+            sys.exit()
+        else:
+            self.logger.info("light(%s) got shadow:%s" % (os.getpid(), shadow))
 
-        # wait children
-        if os.getpid() is not 0:
-            status = os.wait()
-            self.logger.info("\nIn parent process-")
-            self.logger.info("Terminated child's process id: {s}".format(s=status[0]))
-            self.logger.info("Signal number that killed the child process: {s}".format(s=status[1]))
-        return
+        pid, status = os.waitpid(shadow, 0)
+        print("wait returned, pid = %d, status = %d" % (pid, status))
 
     def save_file(self):
-        destination = self.data_path # + str(os.getpid())
-        self.logger.info(destination)
-
-        if os.path.isfile(destination) is True:
-            f = open(destination, "a")
+        if os.path.isfile(self.destination) is True:
+            f = open(self.destination, "a")
         else:
-            f = open(destination, "w")
+            f = open(self.destination, "w")
 
         f.writelines(' '.join(list(map(lambda x: str(x), self.X))))
 
@@ -59,14 +59,22 @@ class DataPipeline:
         f.write('\n')
 
         f.close()
-        sys.exit(0)
+
+
+def work(pipeline):
+    pipeline.process()
 
 
 def main():
 
-    pipeline = DataPipeline()
-    pipeline.process()
+    p_num = 3
+    tasks = [DataPipeline(i) for i in range(p_num)]
+
+    with MyPool(p_num) as p:
+        p.map(work, tasks)
 
 
 if __name__ == '__main__':
     main()
+
+
