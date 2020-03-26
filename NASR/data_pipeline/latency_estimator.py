@@ -1,3 +1,5 @@
+import os
+
 from Recasting_ver.cifar_arch_search_lenna import cifar_arch_search, cudnn
 from data_pipeline.lenna_net import LennaNet
 from utils.latency import get_time
@@ -32,12 +34,11 @@ class LatencyEstimator:
         This class will estimate latency and return latency & arch params
     """
 
-    def __init__(self, block_type, input_channel, output_channel, num_layers):
+    def __init__(self, block_type, input_channel, output_channel, num_layers, dataset):
         self.logger = init_logger()
 
         # dataset
-        self.train_loader = None
-        self.test_loader = None
+        self.test_loader = dataset
 
         self.model = LennaNet(self, normal_ops=normal_ops, reduction_ops=reduction_ops,
                               block_type=block_type, num_layers=num_layers,
@@ -62,9 +63,6 @@ class LatencyEstimator:
         """
         return: latency of one block & arch params
         """
-        # load cifar10 dataset
-        self.load_dataset()
-
         # init architecture parameters
         self.model.init_arch_params()
 
@@ -75,30 +73,12 @@ class LatencyEstimator:
             self.model.architecture_parameters()
         ))
 
-    def load_dataset(self):
-        transform = transforms.Compose(
-            [transforms.ToTensor(),
-             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-        train_set = torchvision.datasets.CIFAR10(root='../Recasting_ver/data', train=True,
-                                                 download=True, transform=transform)
-        self.train_loader = torch.utils.data.DataLoader(train_set, batch_size=4,
-                                                        shuffle=True, num_workers=2)
-
-        test_set = torchvision.datasets.CIFAR10(root='../Recasting_ver/data', train=False,
-                                                download=True, transform=transform)
-        self.test_loader = torch.utils.data.DataLoader(test_set, batch_size=4,
-                                                       shuffle=False, num_workers=2)
-
-        classes = ('plane', 'car', 'bird', 'cat',
-                   'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-
     def expect_latency(self):
         with torch.no_grad():
             count = 1
             l_sum = 0
             for data in self.test_loader:
-                if count > 20:
+                if count > 10000:
                     break
 
                 images, labels = data
@@ -113,11 +93,9 @@ class LatencyEstimator:
                 # get latency
                 latency = sum(get_time(prof, target="blocks", show_events=False))
                 l_sum += latency
-                self.logger.info("{n} - latency: {latency}, avg: {avg}".format(
-                    n=count, latency=latency, avg=latency/count
+                self.logger.info("{pid} worker)  {n} - latency: {latency}, avg: {avg}".format(
+                    pid=os.getpid(), n=count, latency=latency, avg=l_sum / count
                 ))
 
                 count += 1
-            self.latency = latency/count
-
-
+            self.latency = latency / (count - 1)

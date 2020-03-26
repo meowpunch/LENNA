@@ -4,6 +4,8 @@ from multiprocessing.pool import Pool
 import multiprocessing
 
 import torch
+import torchvision
+from torchvision.transforms import transforms
 
 from data_pipeline.data_generator import DataGenerator
 from utils.daemon import MyPool
@@ -12,7 +14,7 @@ from utils.logger import init_logger
 
 class DataPipeline:
     def __init__(self, arg):
-        self.logger = multiprocessing.get_logger()
+        self.logger = init_logger()
 
         # constant
         self.destination = "training_data/data{postfix}".format(
@@ -22,29 +24,27 @@ class DataPipeline:
         self.X = None
         self.y = None
 
-    def process(self):
+    def process(self, load):
         """
             TODO: return value
-        return: pandas DataFrame and save file
         """
-        self.logger.info(("main start pid: %s" % (os.getpid())))
-
-        # parallel process
-        # for i in range(4):
         shadow = os.fork()
 
         if shadow == 0:
-            self.logger.info("child %s" % (os.getpid()))
             dg = DataGenerator()
-            self.X, self.y = dg.execute()
+            self.X, self.y = dg.process(load)
+
+            self.logger.info("X: {X}, y: {y}".format(
+                X=self.X, y=self.y
+            ))
 
             self.save_file()
             sys.exit()
         else:
-            self.logger.info("light(%s) got shadow:%s" % (os.getpid(), shadow))
+            self.logger.info("%s worker got shadow %s" % (os.getpid(), shadow))
 
         pid, status = os.waitpid(shadow, 0)
-        print("wait returned, pid = %d, status = %d" % (pid, status))
+        self.logger.info("wait returned, pid = %d, status = %d" % (pid, status))
 
     def save_file(self):
         if os.path.isfile(self.destination) is True:
@@ -53,25 +53,38 @@ class DataPipeline:
             f = open(self.destination, "w")
 
         f.writelines(' '.join(list(map(lambda x: str(x), self.X))))
-
         f.write(', ')
         f.write(str(self.y))
         f.write('\n')
-
         f.close()
 
 
-def work(pipeline):
-    pipeline.process()
+class Worker:
+    def __init__(self, load):
+        self.load = load
+
+    def __call__(self, x):
+        DataPipeline(x).process(self.load)
+
+
+def load_dataset():
+    transform = transforms.Compose(
+        [transforms.ToTensor(),
+         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+    test_set = torchvision.datasets.CIFAR10(root='../Recasting_ver/data', train=False,
+                                            download=False, transform=transform)
+    return torch.utils.data.DataLoader(test_set, batch_size=4,
+                                       shuffle=False, num_workers=2)
 
 
 def main():
 
+    init_logger().info("director id: %s" % (os.getpid()))
     p_num = 3
-    tasks = [DataPipeline(i) for i in range(p_num)]
 
     with MyPool(p_num) as p:
-        p.map(work, tasks)
+        p.map(Worker(load_dataset()), range(p_num))
 
 
 if __name__ == '__main__':

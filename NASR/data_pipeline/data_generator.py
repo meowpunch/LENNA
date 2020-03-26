@@ -27,10 +27,8 @@ class DataGenerator:
         # y
         self.latency = None
 
-    def execute(self):
-        return self.process()
-
     def serialize_x(self):
+        print(self.block_type, self.num_layers)
         return np.append(np.array([
             self.block_type, self.input_channel,
             self.output_channel, self.num_layers,
@@ -38,7 +36,7 @@ class DataGenerator:
             lambda a, b: np.append(a, b), self.arch_params
         ))
 
-    def process(self):
+    def process(self, load):
         """
         return: X, y
         """
@@ -48,6 +46,7 @@ class DataGenerator:
             input_channel=self.input_channel,
             output_channel=self.output_channel,
             num_layers=self.num_layers,
+            dataset=load
         ).execute()
 
         return self.serialize_x(), self.latency
