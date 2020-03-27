@@ -22,28 +22,25 @@ class LennaNet(DartsRecastingNet):
                  ):
         self._redundant_modules = None
 
-        b_in_channel = input_channel
-        b_out_channel = output_channel
-
         """
             first_conv.input_channel <- 3 (RGB)
             first_conv.output_channel <- b_input_channel 
         """
         first_conv = ConvLayer(
-            3, b_in_channel, kernel_size=3, stride=1, use_bn=True, act_func='relu', ops_order='weight_bn_act'
+            3, input_channel, kernel_size=3, stride=1, use_bn=True, act_func='relu', ops_order='weight_bn_act'
         )
 
+        output_channel = input_channel
         if block_type:
-            edges = self.build_normal_layers(normal_ops, b_in_channel, b_out_channel, num_layers)
+            edges = self.build_normal_layers(normal_ops, input_channel, output_channel, num_layers)
             block = [DartsRecastingBlock(edges)]
-
         else:
-            b_out_channel = b_in_channel * 2
-            edges = self.build_reduction_layers(reduction_ops, normal_ops, b_in_channel, b_out_channel,
+            output_channel = input_channel * 2
+            edges = self.build_reduction_layers(reduction_ops, normal_ops,input_channel, output_channel,
                                                 num_layers)
             block = [DartsRecastingBlock(edges)]
 
-        classifier = LinearLayer(b_out_channel, n_classes, dropout_rate=dropout_rate)
+        classifier = LinearLayer(output_channel, n_classes, dropout_rate=dropout_rate)
         super(LennaNet, self).__init__(first_conv, block, classifier)
 
     def init_arch_params(self, init_type='normal', init_ratio=1e-3):

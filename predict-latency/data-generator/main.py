@@ -88,7 +88,6 @@ if __name__ == '__main__':
         print("Terminated child's process id:", status[0])
         print("Signal number that killed the child process:", status[1])
 
-
     """
         for j in range(100):
             # make_bucket()

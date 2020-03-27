@@ -18,17 +18,19 @@ class DataGenerator:
 
         # X
         np.random.seed()
-        self.block_type = np.random.randint(0, 1)
+        self.block_type = np.random.randint(1, 2)
         self.input_channel = np.random.randint(1, 512)
+        # output channel is not used
         self.output_channel = np.random.randint(1, 512)
-        self.num_layers = np.random.randint(1, 5)
+        self.num_layers = np.random.randint(1, 3)
         self.arch_params = None
+
+        print(self.block_type, self.input_channel, self.output_channel, self.num_layers)
 
         # y
         self.latency = None
 
     def serialize_x(self):
-        print(self.block_type, self.num_layers)
         return np.append(np.array([
             self.block_type, self.input_channel,
             self.output_channel, self.num_layers,

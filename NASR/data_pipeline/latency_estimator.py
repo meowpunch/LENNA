@@ -1,6 +1,7 @@
 import os
 
-from Recasting_ver.cifar_arch_search_lenna import cifar_arch_search, cudnn
+from torch.backends import cudnn
+
 from data_pipeline.lenna_net import LennaNet
 from utils.latency import get_time
 from utils.logger import init_logger
@@ -8,7 +9,9 @@ from utils.logger import init_logger
 import torch
 import torchvision
 import torchvision.transforms as transforms
+
 import torchprof
+import pandas as pd
 
 # constant
 normal_ops = [
@@ -46,6 +49,7 @@ class LatencyEstimator:
                               n_classes=10)  # for cifar10
         # avg for n times
         self.latency = None
+        self.latency_list = []
 
         # move model to GPU if available
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -68,6 +72,12 @@ class LatencyEstimator:
 
         # estimate latency of blocks
         self.expect_latency()
+
+        s = pd.Series(self.latency_list, dtype='int')
+        print(s.dtypes())
+        print(s.describe())
+        s.plot(kind="bar", figsize=(0, 1000000))
+
         return self.latency, list(map(
             lambda param: torch.Tensor.cpu(param).detach().numpy(),
             self.model.architecture_parameters()
@@ -78,7 +88,7 @@ class LatencyEstimator:
             count = 1
             l_sum = 0
             for data in self.test_loader:
-                if count > 10000:
+                if count > 100:
                     break
 
                 images, labels = data
@@ -93,9 +103,10 @@ class LatencyEstimator:
                 # get latency
                 latency = sum(get_time(prof, target="blocks", show_events=False))
                 l_sum += latency
+                self.latency_list.append(int(latency))
                 self.logger.info("{pid} worker)  {n} - latency: {latency}, avg: {avg}".format(
                     pid=os.getpid(), n=count, latency=latency, avg=l_sum / count
                 ))
 
                 count += 1
-            self.latency = latency / (count - 1)
+            self.latency = l_sum / (count - 1)

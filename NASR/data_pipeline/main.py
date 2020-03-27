@@ -75,13 +75,13 @@ def load_dataset():
     test_set = torchvision.datasets.CIFAR10(root='../Recasting_ver/data', train=False,
                                             download=False, transform=transform)
     return torch.utils.data.DataLoader(test_set, batch_size=4,
-                                       shuffle=False, num_workers=2)
+                                       shuffle=True, num_workers=2)
 
 
 def main():
 
     init_logger().info("director id: %s" % (os.getpid()))
-    p_num = 3
+    p_num = 1
 
     with MyPool(p_num) as p:
         p.map(Worker(load_dataset()), range(p_num))
