@@ -29,11 +29,11 @@ class DataPipeline:
             TODO: return value
         """
         shadow = os.fork()
-
+        latency_list = None
         if shadow == 0:
             dg = DataGenerator()
-            self.X, self.y = dg.process(load)
-
+            self.X, self.y, latency_list = dg.process(load)
+            # print(latency_list)
             self.logger.info("X: {X}, y: {y}".format(
                 X=self.X, y=self.y
             ))
@@ -45,6 +45,7 @@ class DataPipeline:
 
         pid, status = os.waitpid(shadow, 0)
         self.logger.info("wait returned, pid = %d, status = %d" % (pid, status))
+        return latency_list
 
     def save_file(self):
         if os.path.isfile(self.destination) is True:
@@ -73,9 +74,9 @@ def load_dataset():
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
     test_set = torchvision.datasets.CIFAR10(root='../Recasting_ver/data', train=False,
-                                            download=False, transform=transform)
+                                            download=True, transform=transform)
     return torch.utils.data.DataLoader(test_set, batch_size=4,
-                                       shuffle=True, num_workers=2)
+                                       shuffle=False, num_workers=2)
 
 
 def main():

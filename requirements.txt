@@ -1,3 +1,4 @@
+pandas
 torchprof
 PyYAML
 attrs==19.3.0
