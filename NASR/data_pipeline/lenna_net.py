@@ -43,7 +43,7 @@ class LennaNet(DartsRecastingNet):
         classifier = LinearLayer(output_channel, n_classes, dropout_rate=dropout_rate)
         super(LennaNet, self).__init__(first_conv, block, classifier)
 
-    def init_arch_params(self, init_type='normal', init_ratio=1e-3):
+    def init_arch_params(self, init_type='uniform', init_ratio=1e-3):
         for param in self.architecture_parameters():
             if init_type == 'normal':
                 param.data.normal_(0, init_ratio)

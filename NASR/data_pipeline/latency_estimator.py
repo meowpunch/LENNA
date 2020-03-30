@@ -12,6 +12,7 @@ import torchvision.transforms as transforms
 
 import torchprof
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # constant
 normal_ops = [
@@ -65,7 +66,7 @@ class LatencyEstimator:
 
     def process(self):
         """
-        return: latency of one block & arch params
+        return: latency of one block & arch params & latency list(for jupyter notebook)
         """
         # init architecture parameters
         self.model.init_arch_params()
@@ -73,28 +74,27 @@ class LatencyEstimator:
         # estimate latency of blocks
         self.expect_latency()
 
-        s = pd.Series(self.latency_list, dtype='int')
-        print(s.dtypes())
-        print(s.describe())
-        s.plot(kind="bar", figsize=(0, 1000000))
-
         return self.latency, list(map(
             lambda param: torch.Tensor.cpu(param).detach().numpy(),
             self.model.architecture_parameters()
-        ))
+        )), self.latency_list
 
     def expect_latency(self):
+        """
+            # TODO: remove outlier per once sampled binary gates
+        :return: average of latency
+        """
         with torch.no_grad():
             count = 1
             l_sum = 0
             for data in self.test_loader:
-                if count > 100:
+                if count > 1000:
                     break
 
                 images, labels = data
 
                 # open the binary gate
-                self.model.reset_binary_gates()
+                # self.model.reset_binary_gates()
                 # self.model.unused_modules_off()
 
                 with torchprof.Profile(self.model, use_cuda=True) as prof:
@@ -103,7 +103,7 @@ class LatencyEstimator:
                 # get latency
                 latency = sum(get_time(prof, target="blocks", show_events=False))
                 l_sum += latency
-                self.latency_list.append(int(latency))
+                self.latency_list.append(latency)
                 self.logger.info("{pid} worker)  {n} - latency: {latency}, avg: {avg}".format(
                     pid=os.getpid(), n=count, latency=latency, avg=l_sum / count
                 ))
