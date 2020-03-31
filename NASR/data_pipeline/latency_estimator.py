@@ -98,7 +98,7 @@ class LatencyEstimator:
                 # self.model.unused_modules_off()
 
                 with torchprof.Profile(self.model, use_cuda=True) as prof:
-                    outputs = self.p_model(images)
+                    self.p_model(images)
 
                 # get latency
                 latency = sum(get_time(prof, target="blocks", show_events=False))
