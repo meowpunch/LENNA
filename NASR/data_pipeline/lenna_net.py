@@ -17,8 +17,8 @@ class LennaNet(DartsRecastingNet):
 
     def __init__(self, num_blocks, num_layers,
                  normal_ops, reduction_ops, block_type,
-                 input_channel, output_channel,
-                 n_classes=1000, bn_param=(0.1, 1e-3), dropout_rate=0,
+                 input_channel, n_classes=1000,
+                 bn_param=(0.1, 1e-3), dropout_rate=0,
                  ):
         self._redundant_modules = None
 

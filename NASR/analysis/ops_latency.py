@@ -24,7 +24,7 @@ class OpsAnalyzer:
         """
         return list(map(self.analyze, self.models))
 
-    def analyze(self, model,):
+    def analyze(self, model):
         """
         return: pd DataFrame
         """

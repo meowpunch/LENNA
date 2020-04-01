@@ -110,7 +110,7 @@ class MixedEdge(MyModule):
 
     def forward(self, x):
         # print(self.AP_path_alpha)
-        # print(self.AP_path_wb)
+        print(self.AP_path_wb)
         # print(self.active_index)
         # print(self.inactive_index)
         # print(type(self.active_op))

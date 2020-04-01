@@ -1,4 +1,4 @@
-def get_time(target, prof, show_events=False):
+def get_time(prof, target, show_events=False):
     """
         motivated from `traces_to_display` function in torchprof module
     return: list of cpu total time (unit: us)
@@ -26,8 +26,8 @@ def get_time(target, prof, show_events=False):
                     else:
                         cpu_times.append(sum([e.self_cpu_time_total for e in events]))
 
-                        for e in events:
-                            print(e.cpu_children)
+                        # for e in events:
+                        #     print(e.cpu_children)
     return cpu_times
 
 
