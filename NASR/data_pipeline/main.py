@@ -17,7 +17,7 @@ class DataPipeline:
         self.logger = init_logger()
 
         # constant
-        self.destination = destination + arg
+        self.destination = destination + str(arg)
 
         self.X = None
         self.y = None
@@ -64,7 +64,7 @@ class Worker:
         self.destination = destination
 
     def __call__(self, x):
-        DataPipeline(x).process(self.load, self.destination)
+        DataPipeline(x, self.destination).process(self.load)
 
 
 def load_dataset():

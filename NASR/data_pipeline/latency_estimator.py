@@ -1,19 +1,14 @@
 import os
 from functools import reduce
 
+import pandas as pd
+import torch
+import torchprof
 from torch.backends import cudnn
 
 from data_pipeline.lenna_net import LennaNet
 from util.latency import get_time
 from util.logger import init_logger
-
-import torch
-import torchvision
-import torchvision.transforms as transforms
-
-import torchprof
-import pandas as pd
-import matplotlib.pyplot as plt
 
 # constant
 normal_ops = [
@@ -91,13 +86,13 @@ class LatencyEstimator:
 
         def make_df(x, y):
             return pd.concat([x, y], axis=1)
+
         df = reduce(make_df, l_series)
         return df
 
     def expect_latency(self, n_iter=100):
         """
-            # TODO: remove outlier per once sampled binary gates
-        :return: average of latency
+        :return: list of latency and average of latency
         """
         latency_avg = None
         latency_list = []
@@ -114,7 +109,11 @@ class LatencyEstimator:
                 # self.model.reset_binary_gates()
                 # self.model.unused_modules_off()
 
-                with torchprof.Profile(self.model, use_cuda=True) as prof:
+                # with torch.autograd.profiler.profile() as prof:
+                #     self.p_model(images)
+                # print(prof)
+
+                with torchprof.Profile(self.p_model, use_cuda=True) as prof:
                     self.p_model(images)
 
                 # get latency
@@ -127,5 +126,5 @@ class LatencyEstimator:
 
                 count += 1
             latency_avg = l_sum / (count - 1)
-        
+
         return latency_list, latency_avg
