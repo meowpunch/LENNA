@@ -5,8 +5,8 @@ import torch
 import torchprof
 
 from model.test_model import MyModel1, MyModel2, MyModel3, Parallel, Reduction
-from utils.latency import get_time
-from utils.logger import init_logger
+from util.latency import get_time
+from util.logger import init_logger
 
 borders = '-' * 20
 
@@ -16,7 +16,7 @@ class OpsAnalyzer:
         self.logger = init_logger()
         self.counts = counts
         self.X = (torch.rand(1, 1, size, size).uniform_() > 0.8).float()
-        self.models = [MyModel1(), MyModel2(), MyModel3(), Parallel(), Reduction()]
+        self.models = [MyModel1(), MyModel2(), MyModel3()]  # , Parallel(), Reduction()]
 
     def execute(self):
         return self.process()
@@ -54,7 +54,7 @@ class OpsAnalyzer:
 
 
 def main():
-    df_list = OpsAnalyzer(counts=10).process()
+    df_list = OpsAnalyzer(counts=10, size=128).process()
     print(df_list)
 
 

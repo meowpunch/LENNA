@@ -3,7 +3,7 @@ from functools import reduce
 import numpy as np
 
 from data_pipeline.latency_estimator import LatencyEstimator
-from utils.logger import init_logger
+from util.logger import init_logger
 
 
 class DataGenerator:

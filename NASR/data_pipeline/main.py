@@ -8,8 +8,8 @@ import torchvision
 from torchvision.transforms import transforms
 
 from data_pipeline.data_generator import DataGenerator
-from utils.daemon import MyPool
-from utils.logger import init_logger
+from util.daemon import MyPool
+from util.logger import init_logger
 
 
 class DataPipeline:

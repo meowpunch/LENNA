@@ -4,8 +4,8 @@ from functools import reduce
 from torch.backends import cudnn
 
 from data_pipeline.lenna_net import LennaNet
-from utils.latency import get_time
-from utils.logger import init_logger
+from util.latency import get_time
+from util.logger import init_logger
 
 import torch
 import torchvision
