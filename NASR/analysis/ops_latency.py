@@ -15,6 +15,7 @@ class OpsAnalyzer:
     def __init__(self, counts=1000, size=20):
         self.logger = init_logger()
         self.counts = counts
+        # batch_size(32 or 64) X depth X width X height
         self.X = (torch.rand(1, 1, size, size).uniform_() > 0.8).float()
         self.models = [MyModel1(), MyModel2(), MyModel3()]  # , Parallel(), Reduction()]
 
@@ -54,7 +55,7 @@ class OpsAnalyzer:
 
 
 def main():
-    df_list = OpsAnalyzer(counts=10, size=128).process()
+    df_list = OpsAnalyzer(counts=1000, size=1024).process()
     print(df_list)
 
 

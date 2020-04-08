@@ -13,13 +13,11 @@ from util.logger import init_logger
 
 
 class DataPipeline:
-    def __init__(self, arg):
+    def __init__(self, arg, destination):
         self.logger = init_logger()
 
         # constant
-        self.destination = "training_data/data{postfix}".format(
-            postfix=arg
-        )
+        self.destination = destination + arg
 
         self.X = None
         self.y = None
@@ -61,11 +59,12 @@ class DataPipeline:
 
 
 class Worker:
-    def __init__(self, load):
+    def __init__(self, load, destination):
         self.load = load
+        self.destination = destination
 
     def __call__(self, x):
-        DataPipeline(x).process(self.load)
+        DataPipeline(x).process(self.load, self.destination)
 
 
 def load_dataset():
@@ -79,16 +78,36 @@ def load_dataset():
                                        shuffle=False, num_workers=2)
 
 
+def save(destination, num):
+    if os.path.isfile(destination) is True:
+        f = open(destination, "a")
+    else:
+        f = open(destination, "w")
+
+    for i in range(num):
+        with open(destination + i, 'rb') as pf:
+            f.write(pf.read())
+            pf.close()
+
+    f.close()
+
+
 def main():
-
     init_logger().info("director id: %s" % (os.getpid()))
-    p_num = 1
+    destination = "training_data/data"
+    p_num = 3
 
-    with MyPool(p_num) as p:
-        p.map(Worker(load_dataset()), range(p_num))
+    with MyPool(p_num) as pool:
+        pool.map(Worker(
+            load=load_dataset(),
+            destination=destination
+        ), range(p_num))
+
+    pool.close()
+    pool.join()
+
+    # save(destination=destination, num=p_num)
 
 
 if __name__ == '__main__':
     main()
-
-

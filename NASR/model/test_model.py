@@ -40,8 +40,8 @@ class MyModel1(MyModule):
 
     def forward(self, x):
         x1 = self.choices['5x5 conv'](x)
-        x2 = self.choices['3x3 conv'](x)
-        x3 = self.choices['7x7 conv'](x)
+        x2 = self.choices['3x3 conv'](x1)
+        x3 = self.choices['7x7 conv'](x2)
         self.size_list = [x1, x2, x3]
         return x3
 
@@ -59,10 +59,10 @@ class MyModel2(MyModule):
 
     def forward(self, x):
         x1 = self.choices['3x3 conv1'](x)
-        x2 = self.choices['3x3 conv2'](x)
-        x3 = self.choices['3x3 conv3'](x)
-        x4 = self.choices['3x3 conv4'](x)
-        x5 = self.choices['3x3 conv5'](x)
+        x2 = self.choices['3x3 conv2'](x1)
+        x3 = self.choices['3x3 conv3'](x2)
+        x4 = self.choices['3x3 conv4'](x3)
+        x5 = self.choices['3x3 conv5'](x4)
         self.size_list = [x1, x2, x3, x4, x5]
         return x5
 
@@ -78,8 +78,8 @@ class MyModel3(MyModule):
 
     def forward(self, x):
         x1 = self.choices['7x7 conv'](x)
-        x2 = self.choices['3x3 conv'](x)
-        x3 = self.choices['5x5 conv'](x)
+        x2 = self.choices['3x3 conv'](x1)
+        x3 = self.choices['5x5 conv'](x2)
         self.size_list = [x1, x2, x3]
         return x
 

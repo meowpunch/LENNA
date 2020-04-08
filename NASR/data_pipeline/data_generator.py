@@ -11,7 +11,6 @@ class DataGenerator:
         """
             block type: 0 -> reduction , 1-> normal
             input_channel: 1~1000
-            output_channel: 1~1000
             num_layers: fix 5 or 6
         """
         self.logger = init_logger()
