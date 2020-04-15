@@ -1,61 +1,12 @@
 import os
-import sys
-from multiprocessing.pool import Pool
-import multiprocessing
+from multiprocessing import Pool
 
 import torch
 import torchvision
 from torchvision.transforms import transforms
 
-from data_pipeline.data_generator import DataGenerator
-from util.daemon import MyPool
+from data_pipeline.core import DataPipeline
 from util.logger import init_logger
-
-
-class DataPipeline:
-    def __init__(self, arg, destination):
-        self.logger = init_logger()
-
-        # constant
-        self.destination = destination + str(arg)
-
-        self.X = None
-        self.y = None
-
-    def process(self, load):
-        """
-            TODO: return value
-        """
-        shadow = os.fork()
-        latency_list = None
-        if shadow == 0:
-            dg = DataGenerator()
-            self.X, self.y, latency_list = dg.process(load)
-            # print(latency_list)
-            self.logger.info("X: {X}, y: {y}".format(
-                X=self.X, y=self.y
-            ))
-
-            self.save_file()
-            sys.exit()
-        else:
-            self.logger.info("%s worker got shadow %s" % (os.getpid(), shadow))
-
-        pid, status = os.waitpid(shadow, 0)
-        self.logger.info("wait returned, pid = %d, status = %d" % (pid, status))
-        return latency_list
-
-    def save_file(self):
-        if os.path.isfile(self.destination) is True:
-            f = open(self.destination, "a")
-        else:
-            f = open(self.destination, "w")
-
-        f.writelines(' '.join(list(map(lambda x: str(x), self.X))))
-        f.write(', ')
-        f.write(str(self.y))
-        f.write('\n')
-        f.close()
 
 
 class Worker:
@@ -97,7 +48,7 @@ def main():
     destination = "training_data/data"
     p_num = 3
 
-    with MyPool(p_num) as pool:
+    with Pool(p_num) as pool:
         pool.map(Worker(
             load=load_dataset(),
             destination=destination

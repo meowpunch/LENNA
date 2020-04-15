@@ -7,6 +7,7 @@ import torchprof
 from model.test_model import MyModel1, MyModel2, MyModel3, Parallel, Reduction
 from util.latency import get_time
 from util.logger import init_logger
+import time
 
 borders = '-' * 20
 
@@ -34,10 +35,13 @@ class OpsAnalyzer:
         """
         self.logger.info(borders + model.__class__.__name__ + borders)
         m_list = model.choices.keys()
+        rows_total = []
         rows = []
         for i in range(self.counts):
             with torchprof.Profile(model, use_cuda=True) as prof:
+                start = time.time()
                 model(self.X)
+                rows_total.append(time.time() - start)
 
             # print(prof.display(show_events=False))
             # print(prof.display(show_events=True))
@@ -51,7 +55,7 @@ class OpsAnalyzer:
                 )))
 
         self.logger.info(model.size_list)
-        return pd.DataFrame(rows, columns=m_list)
+        return pd.DataFrame(rows + rows_total, columns=m_list.append("total"))
 
 
 def main():
