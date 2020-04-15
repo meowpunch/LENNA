@@ -109,9 +109,9 @@ class LatencyEstimator:
                 # self.model.reset_binary_gates()
                 # self.model.unused_modules_off()
 
-                # with torch.autograd.profiler.profile() as prof:
-                #     self.p_model(images)
-                # print(prof)
+                with torch.autograd.profiler.profile() as prof:
+                    self.p_model(images)
+                print(prof)
 
                 with torchprof.Profile(self.p_model, use_cuda=True) as prof:
                     self.p_model(images)

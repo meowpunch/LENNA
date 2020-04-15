@@ -40,11 +40,12 @@ class MyModule(nn.Module):
 class MyModel1(MyModule):
     def __init__(self):
         super(MyModel1, self).__init__()
-        self.choices = nn.ModuleDict({
+        self.modules = {
             '5x5 conv': nn.Conv2d(1, 32, 5, padding=padding_5),
             '3x3 conv': nn.Conv2d(32, 64, 3, padding=padding_3),
             '7x7 conv': nn.Conv2d(64, 128, 7, padding=padding_7)
-        })
+        }
+        self.choices = nn.ModuleDict(self.modules)
 
     def forward(self, x):
         t0 = time.time()
@@ -69,13 +70,14 @@ class MyModel1(MyModule):
 class MyModel2(MyModule):
     def __init__(self):
         super(MyModel2, self).__init__()
-        self.choices = nn.ModuleDict({
+        self.modules = {
             '3x3 conv1': nn.Conv2d(1, 32, 3, padding=padding_3),
             '3x3 conv2': nn.Conv2d(32, 64, 3, padding=padding_3),
             '3x3 conv3': nn.Conv2d(64, 32, 3, padding=padding_3),
             '3x3 conv4': nn.Conv2d(32, 16, 3, padding=padding_3),
             '3x3 conv5': nn.Conv2d(16, 1, 3, padding=padding_3)
-        })
+        }
+        self.choices = nn.ModuleDict(self.modules)
 
     def forward(self, x):
         t0 = time.time()
@@ -106,11 +108,12 @@ class MyModel2(MyModule):
 class MyModel3(MyModule):
     def __init__(self):
         super(MyModel3, self).__init__()
-        self.choices = nn.ModuleDict({
+        self.modules = {
             '5x5 conv': nn.Conv2d(64, 128, 5, padding=padding_5),
             '3x3 conv': nn.Conv2d(32, 64, 3, padding=padding_3),
             '7x7 conv': nn.Conv2d(1, 32, 7, padding=padding_7)
-        })
+        }
+        self.choices = nn.ModuleDict(self.modules)
 
     def forward(self, x):
         t0 = time.time()
@@ -135,11 +138,12 @@ class MyModel3(MyModule):
 class Parallel(MyModule):
     def __init__(self):
         super(Parallel, self).__init__()
-        self.choices = nn.ModuleDict({
+        self.modules = {
             '3x3 conv': nn.Conv2d(1, 32, 3, padding=padding_3),
             '5x5 conv': nn.Conv2d(1, 32, 5, padding=padding_5),
             '7x7 conv': nn.Conv2d(1, 32, 7, padding=padding_7),
-        })
+        }
+        self.choices = nn.ModuleDict(self.modules)
 
     def forward(self, x):
         t0 = time.time()
@@ -164,14 +168,15 @@ class Parallel(MyModule):
 class Reduction(MyModule):
     def __init__(self):
         super(Reduction, self).__init__()
-        self.choices = nn.ModuleDict({
+        self.modules = {
             '3x3 conv1': nn.Conv2d(1, 1, 3, padding=padding_3),
             '3x3 conv2': nn.Conv2d(1, 1, 3, padding=padding_3),
             '3x3 conv3': nn.Conv2d(1, 1, 3, padding=padding_3),
             '3x3 conv4': nn.Conv2d(1, 1, 3, padding=padding_3),
             '3x3 conv5': nn.Conv2d(1, 1, 3, padding=padding_3),
             '3x3 conv6': nn.Conv2d(1, 1, 3, padding=padding_3)
-        })
+        }
+        self.choices = nn.ModuleDict(self.modules)
 
     def forward(self, x):
         t0 = time.time()

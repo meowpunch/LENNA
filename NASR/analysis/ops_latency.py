@@ -35,31 +35,38 @@ class OpsAnalyzer:
         """
         self.logger.info(borders + model.__class__.__name__ + borders)
 
-        m_list = list(model.choices.keys())
+        m_list = list(model.modules.keys())
         rows = []
+        rows0 = []
         for i in range(self.counts):
             with torchprof.Profile(model, use_cuda=True) as prof:
                 model(self.X)
+            # print(prof.display(show_events=False))
+            # def get_latency(target, profiler):
+            #     return get_time(prof=profiler, target=target)[0]
+            #
+            # rows0.append(
+            #     list(map(
+            #         functools.partial(get_latency, profiler=prof), m_list
+            #     )))
 
-            def get_latency(target, profiler):
-                return get_time(prof=profiler, target=target)[0]
+            with torch.autograd.profiler.profile() as prof:
+                model(self.X)
 
-            rows.append(
-                list(map(
-                    functools.partial(get_latency, profiler=prof), m_list
-                )))
+            rows.append(prof.self_cpu_time_total)
 
         self.logger.info(model.size_list)
 
-        # 'profiler'
-        m0_df = pd.DataFrame(rows, columns=m_list)
+        m_df = pd.DataFrame(rows, columns=["autograd_total_time"])
+        # 'torchprof'
+        # m0_df = pd.DataFrame(rows0, columns=m_list)
         # 'time'
         m1_df = pd.DataFrame(
             data=model.latency_list,
             columns=list(map(lambda x: x + "_time", m_list)) + ["total_time"]
         )
         # pd.concat([m0_df, m1_df], axis=1)
-        return m1_df
+        return pd.concat([m_df, m1_df], axis=1)
 
 
 def main():
