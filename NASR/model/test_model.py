@@ -63,7 +63,7 @@ class MyModel1(MyModule):
             # 5x5, 3x3, 7x7, total
             self.unit_transform([t1 - t0, t2 - t1, t3 - t2, t3 - t0])
         )
-        self.size_list = [x1, x2, x3]
+        self.size_list = [x, x1, x2, x3]
         return x3
 
 
@@ -101,7 +101,7 @@ class MyModel2(MyModule):
             # 5x5, 3x3, 7x7, total
             self.unit_transform([t1 - t0, t2 - t1, t3 - t2, t4 - t3, t5 - t4, t5 - t0])
         )
-        self.size_list = [x1, x2, x3, x4, x5]
+        self.size_list = [x, x1, x2, x3, x4, x5]
         return x5
 
 
@@ -109,9 +109,9 @@ class MyModel3(MyModule):
     def __init__(self):
         super(MyModel3, self).__init__()
         self.modules = {
-            '5x5 conv': nn.Conv2d(64, 128, 5, padding=padding_5),
+            '7x7 conv': nn.Conv2d(1, 32, 7, padding=padding_7),
             '3x3 conv': nn.Conv2d(32, 64, 3, padding=padding_3),
-            '7x7 conv': nn.Conv2d(1, 32, 7, padding=padding_7)
+            '5x5 conv': nn.Conv2d(64, 128, 5, padding=padding_5)
         }
         self.choices = nn.ModuleDict(self.modules)
 
@@ -131,7 +131,7 @@ class MyModel3(MyModule):
             # 5x5, 3x3, 7x7, total
             self.unit_transform([t1 - t0, t2 - t1, t3 - t2, t3 - t0])
         )
-        self.size_list = [x1, x2, x3]
+        self.size_list = [x, x1, x2, x3]
         return x3
 
 
@@ -139,29 +139,29 @@ class Parallel(MyModule):
     def __init__(self):
         super(Parallel, self).__init__()
         self.modules = {
+            '7x7 conv': nn.Conv2d(1, 32, 7, padding=padding_7),
             '3x3 conv': nn.Conv2d(1, 32, 3, padding=padding_3),
             '5x5 conv': nn.Conv2d(1, 32, 5, padding=padding_5),
-            '7x7 conv': nn.Conv2d(1, 32, 7, padding=padding_7),
         }
         self.choices = nn.ModuleDict(self.modules)
 
     def forward(self, x):
         t0 = time.time()
 
-        x1 = self.choices['5x5 conv'](x)
+        x1 = self.choices['7x7 conv'](x)
         t1 = time.time()
 
         x2 = self.choices['3x3 conv'](x)
         t2 = time.time()
 
-        x3 = self.choices['7x7 conv'](x)
+        x3 = self.choices['5x5 conv'](x)
         t3 = time.time()
 
         self.latency_list.append(
             # 5x5, 3x3, 7x7, total
             self.unit_transform([t1 - t0, t2 - t1, t3 - t2, t3 - t0])
         )
-        self.size_list = [x1, x2, x3]
+        self.size_list = [x, x1, x2, x3]
         return x1 + x2 + x3
 
 
@@ -197,5 +197,5 @@ class Reduction(MyModule):
             # 5x5, 3x3, 7x7, total
             self.unit_transform([t1 - t0, t2 - t1, t3 - t2, t4 - t3, t3 - t2, t4 - t3, t3 - t0])
         )
-        self.size_list = [x1, x2, x3, x4]
+        self.size_list = [x, x1, x2, x3, x4]
         return x2 + x3 + x4
