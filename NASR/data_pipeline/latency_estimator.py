@@ -48,7 +48,7 @@ class LatencyEstimator:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = self.model.to(device)
         if device == 'cuda':
-            self.p_model = torch.nn.DataParallel(self.model)
+            self.p_model = torch.nn.DataParallel(module=self.model)
             cudnn.benchmark = True
 
         self.model.eval()
@@ -111,18 +111,17 @@ class LatencyEstimator:
 
                 with torch.autograd.profiler.profile() as prof:
                     self.p_model(images)
-                print(prof)
 
-                with torchprof.Profile(self.p_model, use_cuda=True) as prof:
-                    self.p_model(images)
-
-                # get latency
-                latency = sum(get_time(prof, target="blocks", show_events=False))
-                l_sum += latency
-                latency_list.append(latency)
-                self.logger.info("{pid} worker)  {n} - latency: {latency}, avg: {avg}".format(
-                    pid=os.getpid(), n=count, latency=latency, avg=l_sum / count
-                ))
+                # with torchprof.Profile(self.p_model, use_cuda=True) as prof:
+                #     self.p_model(images)
+                #
+                # # get latency
+                # latency = sum(get_time(prof, target="blocks", show_events=False))
+                # l_sum += latency
+                # latency_list.append(latency)
+                # self.logger.info("{pid} worker)  {n} - latency: {latency}, avg: {avg}".format(
+                #     pid=os.getpid(), n=count, latency=latency, avg=l_sum / count
+                # ))
 
                 count += 1
             latency_avg = l_sum / (count - 1)

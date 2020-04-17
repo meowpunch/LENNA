@@ -41,13 +41,18 @@ class OpsAnalyzer:
             with torchprof.Profile(model, use_cuda=True) as prof:
                 model(self.X)
             # print(prof.display(show_events=False))
-            # def get_latency(target, profiler):
-            #     return get_time(prof=profiler, target=target)[0]
-            #
-            # rows0.append(
-            #     list(map(
-            #         functools.partial(get_latency, profiler=prof), m_list
-            #     )))
+
+            """
+                # latency per ops [torchprof]
+                def get_latency(target, profiler):
+                    return get_time(prof=profiler, target=target)[0]
+    
+                rows0.append(
+                    list(map(
+                        functools.partial(get_latency, profiler=prof), m_list
+                    )))
+            """
+            # self cpu time total of model [torchprof]
             rows0.append(sum(get_time(prof=prof, target=model.__class__.__name__)))
 
             with torch.autograd.profiler.profile() as prof:
@@ -55,10 +60,13 @@ class OpsAnalyzer:
 
             rows.append(prof.self_cpu_time_total)
 
+            if i % 200 is 0:
+                self.logger.info("estimate {i} times".format(i=i))
+
         self.logger.info(model.size_list)
 
         # 'torch.autograd.Profile'
-        m_df = pd.DataFrame(rows, columns=["autograd_total_time"])
+        m_df = pd.DataFrame(rows, columns=["autograd"])
         # 'torchprof'
         m0_df = pd.DataFrame(rows0, columns=["torchprof"])
         # 'time'

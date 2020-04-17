@@ -6,6 +6,7 @@ import torchvision
 from torchvision.transforms import transforms
 
 from data_pipeline.core import DataPipeline
+from util.daemon import MyPool
 from util.logger import init_logger
 
 
@@ -48,7 +49,7 @@ def main():
     destination = "training_data/data"
     p_num = 3
 
-    with Pool(p_num) as pool:
+    with MyPool(p_num) as pool:
         pool.map(Worker(
             load=load_dataset(),
             destination=destination
@@ -57,7 +58,7 @@ def main():
     pool.close()
     pool.join()
 
-    # save(destination=destination, num=p_num)
+    save(destination=destination, num=p_num)
 
 
 if __name__ == '__main__':
