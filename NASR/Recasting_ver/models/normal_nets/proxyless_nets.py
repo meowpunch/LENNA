@@ -1,6 +1,8 @@
 # ProxylessNAS: Direct Neural Architecture Search on Target Task and Hardware
 # Han Cai, Ligeng Zhu, Song Han
 # International Conference on Learning Representations (ICLR), 2019.
+import time
+
 import torchprof
 
 from Recasting_ver.modules.layers import *
@@ -390,12 +392,16 @@ class DartsRecastingNet(MyNetwork):
         self.blocks = nn.ModuleList(blocks)
         self.global_avg_pooling = nn.AdaptiveAvgPool2d(1)
         self.classifier = classifier
+        self.latency_list = []
 
     def forward(self, x):
+        print(x.shape)
         x = self.first_conv(x)
 
         for block in self.blocks:
+            start = time.time()
             x = block(x)
+            self.latency_list.append((start - time.time())*1000000)
 
         x = self.global_avg_pooling(x)
         x = x.view(x.size(0), -1)  # flatten

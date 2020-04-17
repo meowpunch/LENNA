@@ -26,8 +26,8 @@ def load_dataset():
 
     test_set = torchvision.datasets.CIFAR10(root='../Recasting_ver/data', train=False,
                                             download=True, transform=transform)
-    return torch.utils.data.DataLoader(test_set, batch_size=4,
-                                       shuffle=False, num_workers=2)
+    return torch.utils.data.DataLoader(test_set, batch_size=1,
+                                       shuffle=False, num_workers=0)
 
 
 def collect_data(destination, num):

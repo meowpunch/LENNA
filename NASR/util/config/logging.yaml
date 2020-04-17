@@ -9,11 +9,11 @@ handlers:
     class: logging.StreamHandler
     level: DEBUG
     formatter: basic
-#  file_debug:
-#    class: logging.FileHandler
-#    level: DEBUG
-#    formatter: basic
-#    filename: debug.log
+  file_debug:
+    class: logging.FileHandler
+    level: INFO
+    formatter: basic
+    filename: info.log
 #  file_error:
 #    class: logging.FileHandler
 #    level: ERROR
