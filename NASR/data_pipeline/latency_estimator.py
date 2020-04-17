@@ -45,13 +45,13 @@ class LatencyEstimator:
                               input_channel=input_channel, n_classes=10)  # for cifar10
 
         # move model to GPU if available
-        # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        # self.model = self.model.to(device)
-        # if device == 'cuda':
-        #     self.p_model = torch.nn.DataParallel(module=self.model)
-        #     cudnn.benchmark = True
-        #
-        # self.model.eval()
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.model = self.model.to(device)
+        if device == 'cuda':
+            self.p_model = torch.nn.DataParallel(module=self.model)
+            cudnn.benchmark = True
+
+        self.model.eval()
 
     def execute(self):
         return self.process()
@@ -108,19 +108,17 @@ class LatencyEstimator:
                 # self.model.reset_binary_gates()
                 # self.model.unused_modules_off()
 
+                # autograd
                 self.logger.info(images.shape)
-                # with torch.autograd.profiler.profile(use_cuda=True) as prof:
-                #     self.p_model(images)
-                # self.logger.info(prof.self_cpu_time_total)
-                # self.logger.info(self.p_model.module.latency_list)
-                # self.logger.info(prof.function_events.cpu_children_populated)
-                # self.logger.info(prof.function_events.self_cpu_time_total)
-                # self.logger.info(prof.self_cpu_time_total)
+                with torch.autograd.profiler.profile(use_cuda=True) as prof:
+                    self.p_model(images)
+                self.logger.info(prof.self_cpu_time_total)
 
-                with torchprof.Profile(self.model, use_cuda=True) as prof:
-                    self.model(images)
-                self.logger.info(self.model.latency_list)
-                self.logger.info(sum(get_time(prof, target="blocks", show_events=False)))
+                # torchprof
+                # with torchprof.Profile(self.p_model, use_cuda=True) as prof:
+                #     self.p_model(images)
+                # self.logger.info("time: {}".format(self.p_model.module.latency_list))
+                # self.logger.info("torchprof: {}".format(sum(get_time(prof, target="blocks", show_events=False))))
 
                 # get latency
                 # latency = sum(get_time(prof, target="blocks", show_events=False))
