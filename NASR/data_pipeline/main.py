@@ -30,22 +30,29 @@ def load_dataset():
                                        shuffle=False, num_workers=2)
 
 
-def save(destination, num):
+def collect_data(destination, num):
     if os.path.isfile(destination) is True:
-        f = open(destination, "a")
+        f = open(destination, "ab")
     else:
-        f = open(destination, "w")
+        f = open(destination, "wb")
 
+    # combine
     for i in range(num):
-        with open(destination + i, 'rb') as pf:
+        with open(destination + str(i), 'rb') as pf:
             f.write(pf.read())
             pf.close()
-
     f.close()
+
+    # delete
+    for i in range(num):
+        if os.path.exists(destination + str(i)):
+            os.remove(destination + str(i))
 
 
 def main():
-    init_logger().info("director id: %s" % (os.getpid()))
+    logger = init_logger()
+    logger.info("director id: %s" % (os.getpid()))
+
     destination = "training_data/data"
     p_num = 3
 
@@ -58,7 +65,8 @@ def main():
     pool.close()
     pool.join()
 
-    save(destination=destination, num=p_num)
+    collect_data(destination=destination, num=p_num)
+    logger.info("collect data into '{dest}'".format(dest=destination))
 
 
 if __name__ == '__main__':
