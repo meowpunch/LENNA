@@ -34,7 +34,7 @@ class LatencyEstimator:
         This class will estimate latency and return latency & arch params
     """
 
-    def __init__(self, block_type, input_channel, num_layers, dataset):
+    def __init__(self, block_type, input_channel, num_layers, dataset, parallel=False):
         self.logger = init_logger()
 
         # dataset
@@ -52,6 +52,7 @@ class LatencyEstimator:
             cudnn.benchmark = True
 
         self.model.eval()
+
 
     def execute(self):
         return self.process()
@@ -80,8 +81,7 @@ class LatencyEstimator:
         l_series = []
         for i in range(n_binary):
             self.model.reset_binary_gates()
-            l_list, l_avg = self.expect_latency(n_iter=10)
-            print(pd.Series(l_list))
+            l_list, l_avg = self.expect_latency(n_iter=1)
             l_series.append(pd.Series(l_list))
 
         def make_df(x, y):
@@ -90,7 +90,7 @@ class LatencyEstimator:
         df = reduce(make_df, l_series)
         return df
 
-    def expect_latency(self, n_iter=100):
+    def expect_latency(self, n_iter=10):
         """
         :return: list of latency and average of latency
         """
@@ -109,17 +109,22 @@ class LatencyEstimator:
                 # self.model.reset_binary_gates()
                 # self.model.unused_modules_off()
 
-                with torch.autograd.profiler.profile() as prof:
+                with torch.autograd.profiler.profile(use_cuda=True) as prof:
                     self.p_model(images)
+                print(prof.self_cpu_time_total)
+                # self.logger.info(prof.function_events.cpu_children_populated)
+                # self.logger.info(prof.function_events.self_cpu_time_total)
+                # self.logger.info(prof.self_cpu_time_total)
 
                 # with torchprof.Profile(self.p_model, use_cuda=True) as prof:
                 #     self.p_model(images)
-                #
-                # # get latency
+                # latency_list.append([prof.self_cpu_time_total])
+
+                # get latency
                 # latency = sum(get_time(prof, target="blocks", show_events=False))
                 # l_sum += latency
                 # latency_list.append(latency)
-                # self.logger.info("{pid} worker)  {n} - latency: {latency}, avg: {avg}".format(
+                # self.logger.info("{n} times - latency: {latency}, avg: {avg}".format(
                 #     pid=os.getpid(), n=count, latency=latency, avg=l_sum / count
                 # ))
 

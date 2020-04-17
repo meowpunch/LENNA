@@ -17,12 +17,14 @@ class DataGenerator:
 
         # X
         np.random.seed()
-        self.block_type = np.random.randint(0, 2)
-        self.input_channel = np.random.randint(1, 300)
+        self.block_type = 1
+        self.input_channel = 512
         self.num_layers = 1
         self.arch_params = None
 
-        print(self.block_type, self.input_channel, self.num_layers)
+        self.logger.info("{} {} {}".format(
+            self.block_type, self.input_channel, self.num_layers
+        ))
 
         # y
         self.latency = None

@@ -49,11 +49,10 @@ def collect_data(destination, num):
             os.remove(destination + str(i))
 
 
-def main():
+def parallel(destination):
     logger = init_logger()
     logger.info("director id: %s" % (os.getpid()))
 
-    destination = "training_data/data"
     p_num = 3
 
     with MyPool(p_num) as pool:
@@ -69,5 +68,17 @@ def main():
     logger.info("collect data into '{dest}'".format(dest=destination))
 
 
+def single(destination):
+    DataPipeline(0, destination).process(load_dataset(), arg=True)
+
+
+def main(arg="parallel"):
+    destination = "training_data/data"
+    if arg is "parallel":
+        parallel(destination=destination)
+    else:
+        single(destination=destination)
+
+
 if __name__ == '__main__':
-    main()
+    main("single")

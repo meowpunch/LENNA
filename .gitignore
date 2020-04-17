@@ -5,6 +5,7 @@ __pycache__
 predict-latency/data-generator/data
 
 *.pth
+*.log
 
 cifar/
 .ipynb_checkpoints/

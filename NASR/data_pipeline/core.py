@@ -15,28 +15,33 @@ class DataPipeline:
         self.X = None
         self.y = None
 
-    def process(self, load):
+    def process(self, load, arg=True):
         """
             TODO: return value
         """
-        shadow = os.fork()
-        latency_list = None
-        if shadow == 0:
-            dg = DataGenerator()
-            self.X, self.y, latency_list = dg.process(load)
-            # print(latency_list)
-            self.logger.info("X: {X}, y: {y}".format(
-                X=self.X, y=self.y
-            ))
-
-            self.save_file()
-            sys.exit()
+        if arg:
+            DataGenerator().process(load)
         else:
-            self.logger.info("%s worker got shadow %s" % (os.getpid(), shadow))
+            shadow = os.fork()
+            latency_list = None
+            if shadow == 0:
+                dg = DataGenerator()
+                self.X, self.y, latency_list = dg.process(load)
+                # print(latency_list)
+                self.logger.info("X: {X}, y: {y}".format(
+                    X=self.X, y=self.y
+                ))
 
-        pid, status = os.waitpid(shadow, 0)
-        self.logger.info("wait returned, pid = %d, status = %d" % (pid, status))
-        return latency_list
+                self.save_file()
+                sys.exit()
+            else:
+                self.logger.info("%s worker got shadow %s" % (os.getpid(), shadow))
+
+            pid, status = os.waitpid(shadow, 0)
+            self.logger.info("wait returned, pid = %d, status = %d" % (pid, status))
+            return latency_list
+
+
 
     def save_file(self):
         if os.path.isfile(self.destination) is True:
