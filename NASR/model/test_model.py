@@ -1,6 +1,10 @@
 import time
+from functools import reduce
 
+import pandas as pd
+import numpy as np
 import torch.nn as nn
+from Recasting_ver.modules.layers import *
 
 '''
 Output Size = (W - F + 2P) / S + 1
@@ -14,27 +18,6 @@ S: strides
 padding_5 = (5 - 1) // 2
 padding_3 = (3 - 1) // 2
 padding_7 = (7 - 1) // 2
-
-
-class MyModule(nn.Module):
-    def __init__(self):
-        self._size_list = None
-        self.latency_list = []
-        super(MyModule, self).__init__()
-
-    @property
-    def size_list(self):
-        return self._size_list
-
-    @size_list.setter
-    def size_list(self, X: list):
-        if self._size_list is None:
-            self._size_list = list(map(lambda x: x.shape, X))
-
-    @staticmethod
-    def unit_transform(time_list: list):
-        # sec to micro sec
-        return list(map(lambda x: x*1000000, time_list))
 
 
 class MyModel1(MyModule):
@@ -135,13 +118,69 @@ class MyModel3(MyModule):
         return x3
 
 
-class Parallel(MyModule):
+class MyModel4(MyModule):
     def __init__(self):
-        super(Parallel, self).__init__()
+        super(MyModel4, self).__init__()
         self.modules = {
-            '7x7 conv': nn.Conv2d(1, 32, 7, padding=padding_7),
-            '3x3 conv': nn.Conv2d(1, 32, 3, padding=padding_3),
-            '5x5 conv': nn.Conv2d(1, 32, 5, padding=padding_5),
+            '7x7 conv': nn.Conv2d(1, 1, 7, padding=padding_7),
+            '3x3 conv': nn.Conv2d(1, 1, 3, padding=padding_3),
+            '5x5 conv': nn.Conv2d(1, 1, 5, padding=padding_5)
+        }
+        self.choices = nn.ModuleDict(self.modules)
+
+    def forward(self, x):
+        t0 = time.time()
+
+        x1 = self.choices['7x7 conv'](x)
+        t1 = time.time()
+
+        x2 = self.choices['3x3 conv'](x1)
+        t2 = time.time()
+
+        x3 = self.choices['5x5 conv'](x2)
+        t3 = time.time()
+
+        self.latency_list.append(
+            # 5x5, 3x3, 7x7, total
+            self.unit_transform([t1 - t0, t2 - t1, t3 - t2, t3 - t0])
+        )
+        self.size_list = [x, x1, x2, x3]
+        return x3
+
+
+class Parallel1(MyModule):
+    def __init__(self):
+        super(Parallel1, self).__init__()
+        self.modules = {
+            '7x7 conv': nn.Conv2d(1, 1, 7, padding=padding_7),
+            '3x3 conv': nn.Conv2d(1, 1, 3, padding=padding_3),
+            '5x5 conv': nn.Conv2d(1, 1, 5, padding=padding_5)
+        }
+        self.choices = nn.ModuleDict(self.modules)
+
+    def forward(self, x):
+        t0 = time.time()
+
+        x_out = self.choices['7x7 conv'](x) + \
+                self.choices['3x3 conv'](x) + \
+                self.choices['5x5 conv'](x)
+        t1 = time.time()
+
+        self.latency_list.append(
+            # total
+            self.unit_transform([np.nan, np.nan, np.nan, t1 - t0])
+        )
+        self.size_list = [x, x_out]
+        return x_out
+
+
+class Parallel2(MyModule):
+    def __init__(self):
+        super(Parallel2, self).__init__()
+        self.modules = {
+            '7x7 conv': nn.Conv2d(1, 1, 7, padding=padding_7),
+            '3x3 conv': nn.Conv2d(1, 1, 3, padding=padding_3),
+            '5x5 conv': nn.Conv2d(1, 1, 5, padding=padding_5),
         }
         self.choices = nn.ModuleDict(self.modules)
 
@@ -195,7 +234,7 @@ class Reduction(MyModule):
 
         self.latency_list.append(
             # 5x5, 3x3, 7x7, total
-            self.unit_transform([t1 - t0, t2 - t1, t3 - t2, t4 - t3, t3 - t2, t4 - t3, t3 - t0])
+            self.unit_transform([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, t4 - t0])
         )
         self.size_list = [x, x1, x2, x3, x4]
         return x2 + x3 + x4

@@ -4,7 +4,8 @@ import pandas as pd
 import torch
 import torchprof
 
-from model.test_model import MyModel1, MyModel2, MyModel3, Parallel, Reduction
+from model.test_model import MyModel1, MyModel2, MyModel3, Parallel1, Parallel2, Reduction
+from util.latency import get_time
 from util.latency import get_time
 from util.logger import init_logger
 
@@ -17,7 +18,7 @@ class OpsAnalyzer:
         self.counts = counts
         # batch_size(32 or 64) X depth X width X height
         self.X = (torch.rand(size=size).uniform_() > 0.8).float()
-        self.models = [MyModel1()] #  MyModel3()]  # , Reduction()]
+        self.models = [MyModel1()]  # [MyModel1(), MyModel2(), MyModel3()]  # [MyModel4(), Parallel1(), Parallel2()]
 
     def execute(self):
         return self.process()
@@ -40,7 +41,9 @@ class OpsAnalyzer:
         for i in range(self.counts):
             with torchprof.Profile(model, use_cuda=True) as prof:
                 model(self.X)
+            rows0.append(sum(get_time(prof=prof, target=model.__class__.__name__)))
             # print(prof.display(show_events=False))
+            # self cpu time total of model [torchprof]
 
             """
                 # latency per ops [torchprof]
@@ -52,31 +55,31 @@ class OpsAnalyzer:
                         functools.partial(get_latency, profiler=prof), m_list
                     )))
             """
-            # self cpu time total of model [torchprof]
-            rows0.append(sum(get_time(prof=prof, target=model.__class__.__name__)))
 
             with torch.autograd.profiler.profile() as prof:
                 model(self.X)
-
             rows.append(prof.self_cpu_time_total)
 
-            if i % 200 is 0:
-                self.logger.info("estimate {i} times".format(i=i))
+            # model.latency_list = []
+            model(self.X)
+            # if i % 200 is 0:
+            #     self.logger.info("estimate {i} times".format(i=i))
 
         self.logger.info(model.size_list)
 
-        # 'torch.autograd.Profile'
+        'torch.autograd.Profile'
         m_df = pd.DataFrame(rows, columns=["autograd"])
-        # 'torchprof'
+        'torchprof'
         m0_df = pd.DataFrame(rows0, columns=["torchprof"])
-        # 'time'
+        'time'
         m1_df = pd.DataFrame(
             data=model.latency_list,
             columns=list(map(lambda x: x + "_time", m_list)) + ["total_time"]
         )
         # pd.concat([m0_df, m1_df], axis=1)
         # pd.concat([m_df, m1_df], axis=1)
-        return pd.concat([m_df, m1_df, m0_df], axis=1)
+        # pd.concat([m1_df, m_df, m0_df], axis=1)
+        return pd.concat([m1_df, m_df, m0_df], axis=1)
 
 
 def main():

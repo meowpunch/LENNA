@@ -103,16 +103,20 @@ class LatencyEstimator:
                     break
 
                 images, labels = data
+                self.logger.info("outer shape: {}".format(images.shape))
 
                 # open the binary gate
                 # self.model.reset_binary_gates()
                 # self.model.unused_modules_off()
 
+                # time
+                self.p_model(images)
+
+
                 # autograd
-                self.logger.info(images.shape)
-                with torch.autograd.profiler.profile(use_cuda=True) as prof:
-                    self.p_model(images)
-                self.logger.info(prof.self_cpu_time_total)
+                # with torch.autograd.profiler.profile(use_cuda=True) as prof:
+                #     self.p_model(images)
+                # self.logger.info("autograd: {}".format(prof.self_cpu_time_total))
 
                 # torchprof
                 # with torchprof.Profile(self.p_model, use_cuda=True) as prof:
@@ -129,6 +133,8 @@ class LatencyEstimator:
                 # ))
 
                 count += 1
+            from util.outlier import cut_outlier
+            self.logger.info("time: \n{}".format(cut_outlier(self.p_model.module.latency_df)))
             latency_avg = l_sum / (count - 1)
 
         return latency_list, latency_avg

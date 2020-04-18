@@ -392,20 +392,36 @@ class DartsRecastingNet(MyNetwork):
         self.blocks = nn.ModuleList(blocks)
         self.global_avg_pooling = nn.AdaptiveAvgPool2d(1)
         self.classifier = classifier
-        self.latency_list = []
+
+        self.latency_dict = {
+            "first_conv": [],
+            "blocks": [],
+            "global_avg_pooling": [],
+            "classifier": [],
+        }
 
     def forward(self, x):
-        print(x.shape)
-        x = self.first_conv(x)
+        from util.logger import init_logger
+        init_logger().info("inner shape: {}".format(x.shape))
+        t0 = time.time()
 
+        x = self.first_conv(x)
+        b_l = None
         for block in self.blocks:
+            t1 = time.time()
             start = time.time()
             x = block(x)
-            self.latency_list.append((time.time() - start)*1000000)
+            b_l = time.time() - t1
 
         x = self.global_avg_pooling(x)
+        # t3 = time.time()
         x = x.view(x.size(0), -1)  # flatten
         x = self.classifier(x)
+        t4 = time.time()
+
+        self.latency_list.append(self.unit_transform([
+            b_l, t4 - t0
+        ]))
         return x
 
     def forward_recasting(self, x, block_idx=None):
