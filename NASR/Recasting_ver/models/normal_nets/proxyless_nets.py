@@ -6,6 +6,7 @@ import time
 import torchprof
 
 from Recasting_ver.modules.layers import *
+from util.logger import init_logger
 import json
 
 
@@ -388,6 +389,8 @@ class DartsRecastingNet(MyNetwork):
     def __init__(self, first_conv, blocks, classifier):
         super(DartsRecastingNet, self).__init__()
 
+        self.logger = init_logger()
+
         self.first_conv = first_conv
         self.blocks = nn.ModuleList(blocks)
         self.global_avg_pooling = nn.AdaptiveAvgPool2d(1)
@@ -401,9 +404,8 @@ class DartsRecastingNet(MyNetwork):
         }
 
     def forward(self, x):
-        from util.logger import init_logger
-        init_logger().info("inner shape: {}".format(x.shape))
         t0 = time.time()
+        self.logger.info("inner shape: {}".format(x.shape))
 
         x = self.first_conv(x)
         b_l = None

@@ -1,4 +1,5 @@
 import os
+import time
 from functools import reduce
 
 import pandas as pd
@@ -80,7 +81,7 @@ class LatencyEstimator:
         l_series = []
         for i in range(n_binary):
             self.model.reset_binary_gates()
-            l_list, l_avg = self.expect_latency(n_iter=1)
+            l_list, l_avg = self.expect_latency(n_iter=10)
             l_series.append(pd.Series(l_list))
 
         def make_df(x, y):
@@ -89,11 +90,12 @@ class LatencyEstimator:
         df = reduce(make_df, l_series)
         return df
 
-    def expect_latency(self, n_iter=10):
+    def expect_latency(self, n_iter=70):
         """
         :return: list of latency and average of latency
         """
         latency_avg = None
+        outside_total_time = []
         latency_list = []
         with torch.no_grad():
             count = 1
@@ -110,8 +112,9 @@ class LatencyEstimator:
                 # self.model.unused_modules_off()
 
                 # time
+                start = time.time()
                 self.p_model(images)
-
+                outside_total_time.append((time.time() - start)*1000000)
 
                 # autograd
                 # with torch.autograd.profiler.profile(use_cuda=True) as prof:
@@ -133,8 +136,15 @@ class LatencyEstimator:
                 # ))
 
                 count += 1
+
+            outside_df = pd.DataFrame(data=outside_total_time, columns=["outside_total"])
+            combined_df = pd.concat([self.p_model.module.latency_df, outside_df], axis=1)
             from util.outlier import cut_outlier
-            self.logger.info("time: \n{}".format(cut_outlier(self.p_model.module.latency_df)))
+            self.logger.info("time: \n{} \n{}".format(
+                cut_outlier(combined_df[4:].rename(columns={0: "block", 1: "total"}),
+                            min_border=0.25, max_border=0.75).describe(),
+                combined_df.describe()
+            ))
             latency_avg = l_sum / (count - 1)
 
         return latency_list, latency_avg
