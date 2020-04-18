@@ -1,10 +1,34 @@
-def cut_outlier(df, min_border=None, max_border=None):
-    if min_border is None and max_border is None:
-        raise ValueError
+import pandas as pd
 
-    if min_border is None:
-        return df.quantile([min_border, 1])
-    elif max_border is None:
-        return df.quantile([0, max_border])
+
+def cut_outlier(x, min_border=0.1, max_border=0.9):
+    """
+    :param x: data
+    :param min_border: min
+    :param max_border: max
+    :return: pd DataFrame or Series
+    """
+    if isinstance(x, list):
+        x = pd.Series(x)
+
+    if isinstance(x, pd.DataFrame) or isinstance(x, pd.Series):
+        if min_border is None and max_border is None:
+            raise ValueError
+
+        if min_border is None:
+            return x[x.apply(
+                lambda y: (y < y.quantile(max_border)),
+                axis=0)
+            ]
+        elif max_border is None:
+            return x[x.apply(
+                lambda y: y.quantile(min_border) < y,
+                axis=0)
+            ]
+        else:
+            return x[x.apply(
+                lambda y: (y.quantile(min_border) < y) & (y < y.quantile(max_border)),
+                axis=0)
+            ]
     else:
-        return df.quantile([min_border, max_border])
+        raise NotImplementedError
