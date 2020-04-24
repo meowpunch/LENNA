@@ -396,16 +396,9 @@ class DartsRecastingNet(MyNetwork):
         self.global_avg_pooling = nn.AdaptiveAvgPool2d(1)
         self.classifier = classifier
 
-        self.latency_dict = {
-            "first_conv": [],
-            "blocks": [],
-            "global_avg_pooling": [],
-            "classifier": [],
-        }
-
     def forward(self, x):
         t0 = time.time()
-        self.logger.info("inner shape: {}".format(x.shape))
+        # self.logger.info("inner shape: {}".format(x.shape))
 
         x = self.first_conv(x)
         b_l = None

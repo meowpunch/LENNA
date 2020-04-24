@@ -11,7 +11,6 @@ import pandas as pd
 class MyModule(nn.Module):
     def __init__(self):
         self._size_list = None
-        self.latency_dict = dict()
         self.latency_list = []
         super(MyModule, self).__init__()
 

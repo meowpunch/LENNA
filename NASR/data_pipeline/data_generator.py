@@ -41,11 +41,11 @@ class DataGenerator:
         return: X, y, latency_list
         """
         # get latency and arch_params (randomly chosen in normal distribution)
-        self.arch_params, self.latency, latency_list = LatencyEstimator(
+        self.arch_params, self.latency = LatencyEstimator(
             block_type=self.block_type,
             input_channel=self.input_channel,
             num_layers=self.num_layers,
             dataset=load
         ).execute()
 
-        return self.serialize_x(), self.latency, latency_list
+        return self.serialize_x(), self.latency

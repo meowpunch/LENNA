@@ -12,6 +12,8 @@ from util.latency import get_time
 from util.logger import init_logger
 
 # constant
+from util.outlier import cut_outlier
+
 normal_ops = [
     '3x3_Conv', '5x5_Conv',
     '3x3_ConvDW', '5x5_ConvDW',
@@ -61,25 +63,72 @@ class LatencyEstimator:
         """
         return: latency of one block & arch params & latency list(for jupyter notebook)
         """
-        # init architecture parameters
+        # init architecture parameters by uniform distribution
         self.model.init_arch_params()
 
         # estimate latency of blocks
-        l_list, l_avg = self.expect_latency()
+        # l_list, l_avg = self.research()
+        latency = self.get_latency()
 
         return list(map(
             lambda param: torch.Tensor.cpu(param).detach().numpy(),
             self.model.architecture_parameters()
-        )), l_avg, l_list
+        )), latency
 
-    def analyze_latency(self, n_binary=10):
+    def get_latency(self, reset_times=3):
+        """
+            # TODO: remove outlier per once sampled binary gates
+        :return: average of latency
+        """
+        # df = pd.DataFrame(columns=range(n_binary))
+        latency_by_binary_gates = []
+        for i in range(reset_times):
+            self.model.reset_binary_gates()
+            latency_by_binary_gates.append(self.expect_latency(n_iter=500))
+
+        self.logger.info("latency by binary gates: {}".format(latency_by_binary_gates))
+
+        return sum(latency_by_binary_gates) / len(latency_by_binary_gates)
+
+    def expect_latency(self, n_iter=70):
+        """
+            for analysis
+        :return: list of latency and average of latency
+        """
+        latency_list = []
+        with torch.no_grad():
+            count = 1
+            l_sum = 0
+            for idx, data in enumerate(self.test_loader):
+                if count > n_iter:
+                    break
+
+                images, labels = data
+                # self.logger.info("outer shape: {}".format(images.shape))
+
+                # time
+                start = time.time()
+                self.p_model(images)
+                latency_list.append((time.time() - start) * 1000000)  # sec to micro sec
+
+                count += 1
+
+            latency = pd.Series(data=latency_list, name="latency")
+            filtered = cut_outlier(latency, min_border=0.25, max_border=0.75)
+
+            self.logger.info("\nlatency: \n{} \nafter filtering: \n{}".format(
+                latency.describe(), filtered.describe()
+            ))
+        return filtered.mean()
+
+    def research_get_latency(self, reset_times=10):
         """
             # TODO: remove outlier per once sampled binary gates
         :return: average of latency
         """
         # df = pd.DataFrame(columns=range(n_binary))
         l_series = []
-        for i in range(n_binary):
+        for i in range(reset_times):
             self.model.reset_binary_gates()
             l_list, l_avg = self.expect_latency(n_iter=10)
             l_series.append(pd.Series(l_list))
@@ -90,8 +139,9 @@ class LatencyEstimator:
         df = reduce(make_df, l_series)
         return df
 
-    def expect_latency(self, n_iter=70):
+    def research_expect_latency(self, n_iter=70):
         """
+            for analysis
         :return: list of latency and average of latency
         """
         latency_avg = None
@@ -114,7 +164,7 @@ class LatencyEstimator:
                 # time
                 start = time.time()
                 self.p_model(images)
-                outside_total_time.append((time.time() - start)*1000000)
+                outside_total_time.append((time.time() - start) * 1000000)
 
                 # autograd
                 # with torch.autograd.profiler.profile(use_cuda=True) as prof:
