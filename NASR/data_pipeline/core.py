@@ -49,3 +49,5 @@ class DataPipeline:
         f.write(str(self.y))
         f.write('\n')
         f.close()
+
+        self.logger.info("success to save data in '{dest}'".format(dest=self.destination))

@@ -17,9 +17,9 @@ class DataGenerator:
 
         # X
         np.random.seed()
-        self.block_type = 1
-        self.input_channel = 512
-        self.num_layers = 1
+        self.block_type = np.random.randint(0, 2)
+        self.input_channel = np.random.randint(1, 512)
+        self.num_layers = 5
         self.arch_params = None
 
         self.logger.info("{} {} {}".format(

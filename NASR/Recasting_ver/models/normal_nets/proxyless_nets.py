@@ -227,12 +227,14 @@ class DartsRecastingBlock(MyModule):
 
     def forward(self, x):
         x_list = [x]
-
+        # TODO:
         for op_list in self.layer_list:
             x_out = op_list[0](x_list[0])
             for x_in, op in zip(x_list[1:], op_list[1:]):
+                # TODO
                 x_out = x_out + op(x_in)
             x_list += [x_out]
+
         return x_list[-1]
 
     @property

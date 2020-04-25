@@ -26,7 +26,7 @@ def load_dataset():
 
     test_set = torchvision.datasets.CIFAR10(root='../Recasting_ver/data', train=False,
                                             download=True, transform=transform)
-    return torch.utils.data.DataLoader(test_set, batch_size=16,
+    return torch.utils.data.DataLoader(test_set, batch_size=256,
                                        shuffle=False, num_workers=2)
 
 
@@ -65,7 +65,7 @@ def parallel(destination):
     pool.join()
 
     collect_data(destination=destination, num=p_num)
-    logger.info("collect data into '{dest}'".format(dest=destination))
+    logger.info("success to collect data into '{dest}'".format(dest=destination))
 
 
 def single(destination):
@@ -81,4 +81,4 @@ def main(arg="parallel"):
 
 
 if __name__ == '__main__':
-    main("single")
+    main("parallel")

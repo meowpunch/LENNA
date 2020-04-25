@@ -13,7 +13,7 @@ borders = '-' * 30
 
 
 class OpsAnalyzer:
-    def __init__(self, counts=1000, size=(32, 1, 128, 128)):
+    def __init__(self, counts=1000, size=(256, 16, 224, 224)):
         self.logger = init_logger()
         self.counts = counts
         # batch_size(32 or 64) X depth X width X height

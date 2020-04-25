@@ -14,13 +14,13 @@ from util.logger import init_logger
 # constant
 from util.outlier import cut_outlier
 
+# TODO: omit zero for summation
 normal_ops = [
     '3x3_Conv', '5x5_Conv',
     '3x3_ConvDW', '5x5_ConvDW',
     '3x3_dConv', '5x5_dConv',
     '3x3_dConvDW', '5x5_dConvDW',
     '3x3_maxpool', '3x3_avgpool',
-    'Zero',
     'Identity',
 ]
 reduction_ops = [
@@ -48,11 +48,11 @@ class LatencyEstimator:
                               input_channel=input_channel, n_classes=10)  # for cifar10
 
         # move model to GPU if available
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model = self.model.to(device)
-        if device == 'cuda':
-            self.p_model = torch.nn.DataParallel(module=self.model)
-            cudnn.benchmark = True
+        # device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        # self.model = self.model.to(device)
+        # if device == 'cuda':
+        #     self.p_model = torch.nn.DataParallel(module=self.model)
+        #     cudnn.benchmark = True
 
         self.model.eval()
 
