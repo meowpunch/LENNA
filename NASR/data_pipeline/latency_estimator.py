@@ -90,7 +90,7 @@ class LatencyEstimator:
 
         return sum(latency_by_binary_gates) / len(latency_by_binary_gates)
 
-    def expect_latency(self, n_iter=70):
+    def expect_latency(self, n_iter=100):
         """
             for analysis
         :return: list of latency and average of latency
@@ -116,13 +116,14 @@ class LatencyEstimator:
                     self.logger.info("{} times estimation".format(count))
 
             latency = pd.Series(data=latency_list, name="latency")
-            filtered = cut_outlier(latency, min_border=0.25, max_border=0.75)
+            # filtered = cut_outlier(latency, min_border=0.25, max_border=0.75)
 
             # describe make time more complex,
             # self.logger.info("\nlatency: \n{} \nafter filtering: \n{}".format(
             #     latency.describe(), filtered.describe()
             # ))
-        return filtered.mean()
+            # filtered.mean()
+        return latency.quantile(q=0.4)
 
     def research_get_latency(self, reset_times=10):
         """
@@ -197,7 +198,7 @@ class LatencyEstimator:
             combined_df = pd.concat([self.model.latency_df.rename(columns={0: "inside_total"}), outside_df, self.model.blocks[0].latency_df], axis=1)   # .rename(columns={0: "inside_total", 1: "total"})
             from util.outlier import cut_outlier
             cut_df = cut_outlier(combined_df, min_border=0.25, max_border=0.75)
-            # self.logger.info("\n{}".format(combined_df))
+            self.logger.info("\n{}".format(combined_df))
             self.logger.info("\ntime: \n{} \nafter cut oulier: \n{}".format(
                 combined_df.describe(),
                 cut_df.describe()
