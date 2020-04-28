@@ -22,8 +22,8 @@ class DataGenerator:
         self.num_layers = 5
         self.arch_params = None
 
-        self.logger.info("{} {} {}".format(
-            self.block_type, self.input_channel, self.num_layers
+        self.logger.info("init b_type: {}, in_ch: {} ".format(
+            self.block_type, self.input_channel
         ))
 
         # y
@@ -31,7 +31,7 @@ class DataGenerator:
 
     def serialize_x(self):
         return np.append(np.array([
-            self.block_type, self.input_channel, self.num_layers,
+            self.block_type, self.input_channel,  # self.num_layers,
         ]), reduce(
             lambda a, b: np.append(a, b), self.arch_params
         ))
