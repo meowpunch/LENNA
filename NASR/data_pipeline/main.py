@@ -81,4 +81,4 @@ def main(arg="parallel"):
 
 
 if __name__ == '__main__':
-    main("parallel")
+    main("single")

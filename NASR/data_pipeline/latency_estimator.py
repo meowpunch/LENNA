@@ -48,11 +48,12 @@ class LatencyEstimator:
                               input_channel=input_channel, n_classes=10)  # for cifar10
 
         # move model to GPU if available
-        # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        # self.model = self.model.to(device)
-        # if device == 'cuda':
-        #     self.p_model = torch.nn.DataParallel(module=self.model)
-        #     cudnn.benchmark = True
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.model.to(device)
+        if device == 'cuda':
+            self.model.cuda();
+            # self.p_model = torch.nn.DataParallel(module=self.model)
+            cudnn.benchmark = True
 
         self.model.eval()
 
@@ -84,7 +85,7 @@ class LatencyEstimator:
         latency_by_binary_gates = []
         for i in range(reset_times):
             self.model.reset_binary_gates()
-            latency_by_binary_gates.append(self.expect_latency(n_iter=500))
+            latency_by_binary_gates.append(self.expect_latency(n_iter=1000))
 
         self.logger.info("latency by binary gates: {}".format(latency_by_binary_gates))
 
@@ -108,7 +109,7 @@ class LatencyEstimator:
 
                 # time
                 start = time.time()
-                self.p_model(images)
+                self.model(images)
                 latency_list.append((time.time() - start) * 1000000)  # sec to micro sec
 
                 count += 1
@@ -116,9 +117,12 @@ class LatencyEstimator:
             latency = pd.Series(data=latency_list, name="latency")
             filtered = cut_outlier(latency, min_border=0.25, max_border=0.75)
 
-            self.logger.info("\nlatency: \n{} \nafter filtering: \n{}".format(
-                latency.describe(), filtered.describe()
-            ))
+            if count%100 is 0:
+                self.logger.info("{} times estimation".format(count))
+            # describe make time more complex,
+            # self.logger.info("\nlatency: \n{} \nafter filtering: \n{}".format(
+            #     latency.describe(), filtered.describe()
+            # ))
         return filtered.mean()
 
     def research_get_latency(self, reset_times=10):
