@@ -1,7 +1,7 @@
 # ProxylessNAS: Direct Neural Architecture Search on Target Task and Hardware
 # Han Cai, Ligeng Zhu, Song Han
 # International Conference on Learning Representations (ICLR), 2019.
-import os
+
 import time
 import json
 from datetime import timedelta
@@ -11,12 +11,10 @@ import copy
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim
-import torchprof
 
-from Recasting_ver.utils import *
-from Recasting_ver.utils.latency_estimator import LatencyEstimator
-from Recasting_ver.utils.pytorch_utils import count_parameters, AverageMeter, accuracy, \
-    cross_entropy_with_label_smoothing
+from utils import *
+from models.normal_nets.proxyless_nets import DartsRecastingNet
+from modules.mix_op import MixedEdge
 
 
 class RunConfig:
@@ -24,7 +22,8 @@ class RunConfig:
     def __init__(self, n_epochs, init_lr, lr_schedule_type, lr_schedule_param,
                  dataset, train_batch_size, test_batch_size, valid_size,
                  opt_type, opt_param, weight_decay, label_smoothing, no_decay_keys,
-                 model_init, init_div_groups, validation_frequency, print_frequency):
+                 model_init, init_div_groups, validation_frequency, print_frequency,
+                 ):
         self.n_epochs = n_epochs
         self.init_lr = init_lr
         self.lr_schedule_type = lr_schedule_type
@@ -49,6 +48,7 @@ class RunConfig:
         self._data_provider = None
         self._train_iter, self._valid_iter, self._test_iter = None, None, None
 
+
     @property
     def config(self):
         config = {}
@@ -67,6 +67,15 @@ class RunConfig:
             T_total = self.n_epochs * nBatch
             T_cur = epoch * nBatch + batch
             lr = 0.5 * self.init_lr * (1 + math.cos(math.pi * T_cur / T_total))
+        elif self.lr_schedule_type == 'step' :
+            milestones = int(self.n_epochs/ 3)
+            if epoch > milestones and epoch < 2 * milestones:
+                scale = 0.2
+            elif epoch > 2 * milestones:
+                scale = 0.2 * 0.2
+            else :
+                scale = 1
+            lr = scale * self.init_lr
         else:
             raise ValueError('do not support: %s' % self.lr_schedule_type)
         return lr
@@ -88,10 +97,10 @@ class RunConfig:
     def data_provider(self):
         if self._data_provider is None:
             if self.dataset == 'imagenet':
-                from Recasting_ver.data_providers.imagenet import ImagenetDataProvider
+                from data_providers.imagenet import ImagenetDataProvider
                 self._data_provider = ImagenetDataProvider(**self.data_config)
             elif self.dataset == 'cifar10' or self.dataset == 'cifar100' :
-                from Recasting_ver.data_providers.cifar import CifarDataProvider
+                from data_providers.cifar import CifarDataProvider
                 self._data_provider = CifarDataProvider(**self.data_config)
                 pass
             else:
@@ -161,9 +170,15 @@ class RunConfig:
             else:
                 optimizer = torch.optim.SGD(net_params, self.init_lr, momentum=momentum, nesterov=nesterov,
                                             weight_decay=self.weight_decay)
+        elif self.opt_type == 'adam':
+            opt_param = {} if self.opt_param is None else self.opt_param
+            optimizer = torch.optim.Adam(net_params, weight_decay=self.weight_decay)
         else:
             raise NotImplementedError
         return optimizer
+
+    def downscale_lr(self, scale):
+        self.init_lr *= scale
 
 
 class RunManager:
@@ -436,10 +451,7 @@ class RunManager:
             images, labels = images.to(self.device), labels.to(self.device)
 
             # compute output
-            with torchprof.Profile(self.net, use_cuda=True) as prof:
-                output = self.net(images)
-            print(prof.display(show_events=True))
-
+            output = self.net(images)
             if self.run_config.label_smoothing > 0:
                 loss = cross_entropy_with_label_smoothing(output, labels, self.run_config.label_smoothing)
             else:

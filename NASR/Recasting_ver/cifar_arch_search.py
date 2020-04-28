@@ -3,11 +3,10 @@
 # International Conference on Learning Representations (ICLR), 2019.
 
 import argparse
-import os
 
-from Recasting_ver.models import CifarRunConfig
-from Recasting_ver.nas_manager import *
-from Recasting_ver.models.super_nets.super_proxyless import SuperDartsRecastingNet
+from models import CifarRunConfig
+from nas_manager import *
+from models.super_nets.super_proxyless import SuperDartsRecastingNet
 
 # ref values
 ref_values = {
@@ -101,7 +100,7 @@ parser.add_argument('--rl_tradeoff_ratio', type=float, default=0.1)
 parser.add_argument('--print_arch_params', type=bool, default=False)
 
 
-def cifar_arch_search():
+if __name__ == '__main__':
     torch.autograd.set_detect_anomaly(True)
     args = parser.parse_args()
 
@@ -177,7 +176,7 @@ def cifar_arch_search():
     else:
         args.ref_value = ref_values[args.target_hardware]['%.2f' % args.width_mult]
     if args.arch_algo == 'grad':
-        from Recasting_ver.nas_manager import GradientArchSearchConfig
+        from nas_manager import GradientArchSearchConfig
         if args.grad_reg_loss_type == 'add#linear':
             args.grad_reg_loss_params = {'lambda': args.grad_reg_loss_lambda}
         elif args.grad_reg_loss_type == 'mul#log':
@@ -189,7 +188,7 @@ def cifar_arch_search():
             args.grad_reg_loss_params = None
         arch_search_config = GradientArchSearchConfig(**args.__dict__)
     elif args.arch_algo == 'rl':
-        from Recasting_ver.nas_manager import RLArchSearchConfig
+        from nas_manager import RLArchSearchConfig
         arch_search_config = RLArchSearchConfig(**args.__dict__)
     else:
         raise NotImplementedError

@@ -6,7 +6,7 @@ import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
-from Recasting_ver.data_providers.base_provider import *
+from data_providers.base_provider import *
 
 
 class CifarDataProvider(DataProvider):

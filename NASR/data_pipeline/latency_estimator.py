@@ -48,10 +48,9 @@ class LatencyEstimator:
                               input_channel=input_channel, n_classes=10)  # for cifar10
 
         # move model to GPU if available
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(device)
         if device == 'cuda':
-            self.model.cuda();
             # self.p_model = torch.nn.DataParallel(module=self.model)
             cudnn.benchmark = True
 
@@ -109,7 +108,7 @@ class LatencyEstimator:
 
                 # time
                 start = time.time()
-                self.model(images)
+                self.model(images.cuda())
                 latency_list.append((time.time() - start) * 1000000)  # sec to micro sec
 
                 count += 1

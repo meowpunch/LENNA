@@ -12,19 +12,23 @@ import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim
 
-from Recasting_ver.utils import *
+from utils import *
+from models.normal_nets.proxyless_nets import DartsRecastingNet
+from modules.mix_op import MixedEdge, MixedEdge_v2
 
 
 class RunConfig:
 
-    def __init__(self, n_epochs, init_lr, lr_schedule_type, lr_schedule_param,
+    def __init__(self, n_epochs, init_lr, lr_schedule_type, lr_schedule_param, milestone,
                  dataset, train_batch_size, test_batch_size, valid_size,
                  opt_type, opt_param, weight_decay, label_smoothing, no_decay_keys,
-                 model_init, init_div_groups, validation_frequency, print_frequency):
+                 model_init, init_div_groups, validation_frequency, print_frequency,
+                 ):
         self.n_epochs = n_epochs
         self.init_lr = init_lr
         self.lr_schedule_type = lr_schedule_type
         self.lr_schedule_param = lr_schedule_param
+        self.milestone = milestone
 
         self.dataset = dataset
         self.train_batch_size = train_batch_size
@@ -45,6 +49,7 @@ class RunConfig:
         self._data_provider = None
         self._train_iter, self._valid_iter, self._test_iter = None, None, None
 
+
     @property
     def config(self):
         config = {}
@@ -63,6 +68,22 @@ class RunConfig:
             T_total = self.n_epochs * nBatch
             T_cur = epoch * nBatch + batch
             lr = 0.5 * self.init_lr * (1 + math.cos(math.pi * T_cur / T_total))
+        elif self.lr_schedule_type == 'step' :
+            drop_epoch = int(self.n_epochs/ 3)
+            if epoch > drop_epoch and epoch < 2 * drop_epoch:
+                scale = 0.2
+            elif epoch > 2 * drop_epoch:
+                scale = 0.2 * 0.2
+            else :
+                scale = 1
+            lr = scale * self.init_lr
+        elif self.lr_schedule_type == 'milestone' :
+            gamma = self.opt_param['gamma']
+            scale = 1
+            for x in self.milestone:
+                if epoch+1 > x :
+                    scale *= gamma
+            lr = scale * self.init_lr
         else:
             raise ValueError('do not support: %s' % self.lr_schedule_type)
         return lr
@@ -84,10 +105,10 @@ class RunConfig:
     def data_provider(self):
         if self._data_provider is None:
             if self.dataset == 'imagenet':
-                from Recasting_ver.data_providers.imagenet import ImagenetDataProvider
+                from data_providers.imagenet import ImagenetDataProvider
                 self._data_provider = ImagenetDataProvider(**self.data_config)
             elif self.dataset == 'cifar10' or self.dataset == 'cifar100' :
-                from Recasting_ver.data_providers.cifar import CifarDataProvider
+                from data_providers.cifar import CifarDataProvider
                 self._data_provider = CifarDataProvider(**self.data_config)
                 pass
             else:
@@ -147,8 +168,8 @@ class RunConfig:
 
     def build_optimizer(self, net_params):
         if self.opt_type == 'sgd':
-            opt_param = {} if self.opt_param is None else self.opt_param
-            momentum, nesterov = opt_param.get('momentum', 0.9), opt_param.get('nesterov', True)
+            momentum = self.opt_param['momentum']
+            nesterov = self.opt_param['nesterov']
             if self.no_decay_keys:
                 optimizer = torch.optim.SGD([
                     {'params': net_params[0], 'weight_decay': self.weight_decay},
@@ -157,12 +178,16 @@ class RunConfig:
             else:
                 optimizer = torch.optim.SGD(net_params, self.init_lr, momentum=momentum, nesterov=nesterov,
                                             weight_decay=self.weight_decay)
+        elif self.opt_type == 'adam':
+            opt_param = {} if self.opt_param is None else self.opt_param
+            optimizer = torch.optim.Adam(net_params, weight_decay=self.weight_decay)
         else:
             raise NotImplementedError
         return optimizer
 
     def downscale_lr(self, scale):
-        self.init_lr *= 0.01
+        self.init_lr *= scale
+
 
 class RecastingRunManager:
 
@@ -181,8 +206,7 @@ class RecastingRunManager:
 
         # a copy of net on cpu for latency estimation & mobile latency model
         self.net_on_cpu_for_latency = copy.deepcopy(self.net).cpu()
-        self.latency_estimator = LatencyEstimator()
-
+        self.latency_model = MyLatencyEstimator(run_config.latency_model)
         # move network to GPU if available
         if torch.cuda.is_available():
             self.device = torch.device('cuda:0')
@@ -199,6 +223,7 @@ class RecastingRunManager:
         self.criterion = nn.CrossEntropyLoss()
         self.MSE = nn.MSELoss()
 
+    def build_optimizer(self):
         if self.run_config.no_decay_keys:
             keys = self.run_config.no_decay_keys.split('#')
             # DataParallel code (need implementation)
@@ -250,8 +275,7 @@ class RecastingRunManager:
 
     # noinspection PyUnresolvedReferences
     def net_latency(self, l_type='gpu4', fast=True, given_net=None):
-        """ Need Implementation"""
-        return 0
+        return self.net.get_latency(self.latency_model)
 
     def print_net_info(self, measure_latency=None):
         # network architecture
@@ -376,7 +400,7 @@ class RecastingRunManager:
         if should_print:
             print(log_str)
 
-    def validate(self, is_test=True, net=None, use_train_mode=False, return_top5=False):
+    def validate(self, is_test=True, net=None, use_train_mode=False, return_top5=False, print_log=False):
         if is_test:
             data_loader = self.run_config.test_loader
         else:
@@ -423,7 +447,8 @@ class RecastingRunManager:
                         format(i, len(data_loader) - 1, batch_time=batch_time, loss=losses, top1=top1)
                     if return_top5:
                         test_log += '\tTop-5 acc {top5.val:.3f} ({top5.avg:.3f})'.format(top5=top5)
-                    print(test_log)
+                    if print_log:
+                        print(test_log)
         if return_top5:
             return losses.avg, top1.avg, top5.avg
         else:
@@ -438,7 +463,7 @@ class RecastingRunManager:
 
         # switch to train mode
         self.net.train()
-
+    
         end = time.time()
         for i, (images, labels) in enumerate(self.run_config.train_loader):
             data_time.update(time.time() - end)
@@ -519,9 +544,9 @@ class RecastingRunManager:
                 is_best = False
 
             self.save_model({
-                'epoch': epoch,
-                'best_acc': self.best_acc,
-                'optimizer': self.optimizer.state_dict(),
+#                'epoch': epoch,
+#                'best_acc': self.best_acc,
+#                'optimizer': self.optimizer.state_dict(),
             # DataParallel code (need implementation)
                 #'state_dict': self.net.module.state_dict(),
                 'state_dict': self.net.state_dict(),
@@ -531,9 +556,9 @@ class RecastingRunManager:
         self.run_config.downscale_lr(scale)
         if self.run_config.no_decay_keys:
             keys = self.run_config.no_decay_keys.split('#')
-            self.optimizer = self.run_config.build_optimizer_finetuning([
+            self.optimizer = self.run_config.build_optimizer([
                 self.net.get_parameters(keys, mode='exclude'),  # parameters with weight decay
                 self.net.get_parameters(keys, mode='include'),  # parameters without weight decay
             ])
         else:
-            self.optimizer = self.run_config.build_optimizer_finetuning(self.net.weight_parameters())
+            self.optimizer = self.run_config.build_optimizer(self.net.weight_parameters())

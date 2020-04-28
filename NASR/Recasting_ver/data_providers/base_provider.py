@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from Recasting_ver.utils import *
+from utils import *
 
 
 class DataProvider:

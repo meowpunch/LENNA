@@ -2,13 +2,14 @@
 # Han Cai, Ligeng Zhu, Song Han
 # International Conference on Learning Representations (ICLR), 2019.
 
-from Recasting_ver.run_recasting_manager import *
+from run_recasting_manager import *
 
 
 class ArchSearchConfig:
 
     def __init__(self, arch_init_type, arch_init_ratio, arch_opt_type, arch_lr,
-                 arch_opt_param, arch_weight_decay, target_hardware, ref_value):
+                 arch_opt_param, arch_weight_decay, target_hardware, ref_value,
+                 arch_penalty = 'l1', arch_lambda=None):
         """ architecture parameters initialization & optimizer """
         self.arch_init_type = arch_init_type
         self.arch_init_ratio = arch_init_ratio
@@ -19,6 +20,8 @@ class ArchSearchConfig:
         self.weight_decay = arch_weight_decay
         self.target_hardware = target_hardware
         self.ref_value = ref_value
+        self.lambda_arch = arch_lambda
+        self.penalty = arch_penalty
 
     @property
     def config(self):
@@ -45,17 +48,36 @@ class ArchSearchConfig:
             )
         else:
             raise NotImplementedError
+    
+    def reverse_l1_penalty(self, params):
+        reg = 0
+        for p in params:
+            reg += torch.sum(torch.abs(p))
+        return -reg
 
+    def reverse_l2_penalty(self, params):
+        reg = 0
+        for p in params:
+            reg += torch.norm(p)
+        return -reg
+
+    def reverse_cosine_penalty(self, params):
+        reg = 0
+        for p in params:
+            reg += torch.sum(torch.cos(p))
+        return -reg
 
 class GradientArchSearchConfig(ArchSearchConfig):
 
     def __init__(self, print_arch_params = False, arch_init_type='normal', arch_init_ratio=1e-3, arch_opt_type='adam', arch_lr=1e-3,
                  arch_opt_param=None, arch_weight_decay=0, target_hardware=None, ref_value=None,
                  grad_update_arch_param_every=1, grad_update_steps=1, grad_binary_mode='full', grad_data_batch=None,
-                 grad_reg_loss_type=None, grad_reg_loss_params=None, **kwargs):
+                 grad_reg_loss_type=None, grad_reg_loss_params=None, 
+                 arch_penalty = 'l1', arch_lambda = None, **kwargs):
         super(GradientArchSearchConfig, self).__init__(
             arch_init_type, arch_init_ratio, arch_opt_type, arch_lr, arch_opt_param, arch_weight_decay,
             target_hardware, ref_value,
+            arch_penalty, arch_lambda,
         )
         self.print_arch_params = print_arch_params
 
@@ -146,11 +168,13 @@ class RLArchSearchConfig(ArchSearchConfig):
 
 class RecastingArchSearchRunManager:
 
-    def __init__(self, path, teacher_path, super_net, teacher_net, run_config: RunConfig, arch_search_config: ArchSearchConfig):
+    def __init__(self, path, teacher_path, basic_net, super_net, teacher_net, run_config: RunConfig, teacher_config: RunConfig, 
+                arch_search_config: ArchSearchConfig):
         # init weight parameters & build weight_optimizer
         self.run_manager = RecastingRunManager(path, super_net, run_config, True)
-        self.teacher_manager = RecastingRunManager(teacher_path, teacher_net, run_config, True)
+        self.teacher_manager = RecastingRunManager(teacher_path, teacher_net, teacher_config, True)
 
+        self.basic_net = basic_net
         self.arch_search_config = arch_search_config
 
         # init architecture parameters
@@ -224,6 +248,19 @@ class RecastingArchSearchRunManager:
         if self.warmup and 'warmup_epoch' in checkpoint:
             self.warmup_epoch = checkpoint['warmup_epoch']
 
+    def load_student_model(self, model_fname=None):
+
+        if torch.cuda.is_available():
+            self.run_manager.load_model(model_fname)
+            #checkpoint = torch.load(model_fname)
+        else:
+            #checkpoint = torch.load(model_fname, map_location='cpu')
+            raise NotImplementedError
+
+#        model_dict = self.teacher.state_dict()
+#        model_dict.update(checkpoint['state_dict'])
+#        self.teacher.load_state_dict(model_dict)
+
     def load_teacher_model(self, model_fname=None):
 
         if torch.cuda.is_available():
@@ -237,11 +274,14 @@ class RecastingArchSearchRunManager:
 #        model_dict.update(checkpoint['state_dict'])
 #        self.teacher.load_state_dict(model_dict)
 
+    def save_student_model(self, model_fname=None):
+        self.run_manager.save_model(model_name=model_fname)
+
     def save_teacher_model(self, model_fname=None):
         self.teacher_manager.save_model(model_name=model_fname)
     """ training related methods """
 
-    def validate(self):
+    def validate_supernet(self):
         # get performances of current chosen network on validation set
         self.run_manager.run_config.valid_loader.batch_sampler.batch_size = self.run_manager.run_config.test_batch_size
         self.run_manager.run_config.valid_loader.batch_sampler.drop_last = False
@@ -251,21 +291,57 @@ class RecastingArchSearchRunManager:
         # remove unused modules
         self.net.unused_modules_off()
         # test on validation set under train mode
-        valid_res = self.run_manager.validate(is_test=False, use_train_mode=True, return_top5=True)
+        valid_res = self.run_manager.validate(is_test=False, use_train_mode=False, return_top5=True)
         # flops of chosen network
         flops = self.run_manager.net_flops()
         # measure latencies of chosen op
         if self.arch_search_config.target_hardware in [None, 'flops']:
             latency = 0
         else:
-            latency, _ = self.run_manager.net_latency(
+            latency = self.run_manager.net_latency(
                 l_type=self.arch_search_config.target_hardware, fast=False
             )
         # unused modules back
         self.net.unused_modules_back()
         return valid_res, flops, latency
 
-    def validate_recasting(self, s_i, t_i, is_test=True, use_train_mode=False):
+    def validate_normalnet(self):
+        # get performances of current chosen network on validation set
+        self.run_manager.run_config.valid_loader.batch_sampler.batch_size = self.run_manager.run_config.test_batch_size
+        self.run_manager.run_config.valid_loader.batch_sampler.drop_last = False
+
+        # test on validation set under train mode
+        valid_res = self.run_manager.validate(is_test=False, use_train_mode=False, return_top5=True)
+        # flops of chosen network
+        flops = self.run_manager.net_flops()
+        # measure latencies of chosen op
+        if self.arch_search_config.target_hardware in [None, 'flops']:
+            latency = 0
+        else:
+            latency = self.run_manager.net_latency(
+                l_type=self.arch_search_config.target_hardware, fast=False
+            )
+        return valid_res, flops, latency
+
+    def validate_teacher(self):
+        # get performances of current chosen network on validation set
+        self.run_manager.run_config.valid_loader.batch_sampler.batch_size = self.run_manager.run_config.test_batch_size
+        self.run_manager.run_config.valid_loader.batch_sampler.drop_last = False
+
+        # test on validation set under train mode
+        valid_res = self.teacher_manager.validate(is_test=False, use_train_mode=False, return_top5=True)
+        # flops of chosen network
+        flops = self.teacher_manager.net_flops()
+        # measure latencies of chosen op
+        if self.arch_search_config.target_hardware in [None, 'flops']:
+            latency = 0
+        else:
+            latency = self.teacher_manager.net_latency(
+                l_type=self.arch_search_config.target_hardware, fast=False
+            )
+        return valid_res, flops, latency
+
+    def validate_recasting(self, s_i, t_i, is_test=True, use_train_mode=False, return_top5=True):
         # get performances of current chosen network on validation set
         self.run_manager.run_config.valid_loader.batch_sampler.batch_size = self.run_manager.run_config.test_batch_size
         self.run_manager.run_config.valid_loader.batch_sampler.drop_last = False
@@ -331,18 +407,20 @@ class RecastingArchSearchRunManager:
         if self.arch_search_config.target_hardware in [None, 'flops']:
             latency = 0
         else:
-            latency, _ = self.run_manager.net_latency(
+            latency = self.run_manager.net_latency(
                 l_type=self.arch_search_config.target_hardware, fast=False
             )
         # unused modules back
         self.net.unused_modules_back()
-        return (losses.avg, top1.avg), flops, latency
+        return (losses.avg, top1.avg, top5.avg), flops, latency
 
     def warm_up(self, warmup_epochs=25):
         lr_max = 0.05
         data_loader = self.run_manager.run_config.train_loader
         nBatch = len(data_loader)
         T_total = warmup_epochs * nBatch
+
+        self.run_manager.build_optimizer()
 
         for epoch in range(self.warmup_epoch, warmup_epochs):
             print('\n', '-' * 30, 'Warmup epoch: %d' % (epoch + 1), '-' * 30, '\n')
@@ -399,7 +477,7 @@ class RecastingArchSearchRunManager:
                         format(epoch + 1, i, nBatch - 1, batch_time=batch_time, data_time=data_time,
                                losses=losses, top1=top1, top5=top5, lr=warmup_lr)
                     self.run_manager.write_log(batch_log, 'train')
-            valid_res, flops, latency = self.validate()
+            valid_res, flops, latency = self.validate_supernet()
             val_log = 'Warmup Valid [{0}/{1}]\tloss {2:.3f}\ttop-1 acc {3:.3f}\ttop-5 acc {4:.3f}\t' \
                       'Train top-1 {top1.avg:.3f}\ttop-5 {top5.avg:.3f}\tflops: {5:.1f}M'. \
                 format(epoch + 1, warmup_epochs, *valid_res, flops / 1e6, top1=top1, top5=top5)
@@ -408,24 +486,119 @@ class RecastingArchSearchRunManager:
             self.run_manager.write_log(val_log, 'valid')
             self.warmup = epoch + 1 < warmup_epochs
 
-            state_dict = self.net.state_dict()
-            # rm architecture parameters & binary gates
-            for key in list(state_dict.keys()):
-                if 'AP_path_alpha' in key or 'AP_path_wb' in key:
-                    state_dict.pop(key)
-            checkpoint = {
-                'state_dict': state_dict,
-                'warmup': self.warmup,
-            }
-            if self.warmup:
-                checkpoint['warmup_epoch'] = epoch,
-            self.run_manager.save_model(checkpoint, model_name='warmup.pth.tar')
+#            state_dict = self.net.state_dict()
+#            # rm architecture parameters & binary gates
+#            for key in list(state_dict.keys()):
+#                if 'AP_path_alpha' in key or 'AP_path_wb' in key:
+#                    state_dict.pop(key)
+#            checkpoint = {
+#                'state_dict': state_dict,
+#                'warmup': self.warmup,
+#            }
+#            if self.warmup:
+#                checkpoint['warmup_epoch'] = epoch,
+#            self.run_manager.save_model(checkpoint, model_name='warmup.pth.tar')
 
-    def train_whole_network(self, scale=0.01, fix_net_weights=False):
+    def warm_up_kd(self, warmup_epochs=25, print_log=False):
+        lr_max = 0.05
+        data_loader = self.run_manager.run_config.train_loader
+        nBatch = len(data_loader)
+        T_total = warmup_epochs * nBatch
+
+        self.run_manager.build_optimizer()
+
+        for epoch in range(self.warmup_epoch, warmup_epochs):
+            print('\n', '-' * 30, 'Warmup epoch: %d' % (epoch + 1), '-' * 30, '\n')
+            batch_time = AverageMeter()
+            data_time = AverageMeter()
+            losses = AverageMeter()
+            top1 = AverageMeter()
+            top5 = AverageMeter()
+            # switch to train mode
+            self.run_manager.net.train()
+            self.teacher_manager.net.eval()
+
+            end = time.time()
+            for i, (images, labels) in enumerate(data_loader):
+                data_time.update(time.time() - end)
+                # lr
+                T_cur = epoch * nBatch + i
+                warmup_lr = 0.5 * lr_max * (1 + math.cos(math.pi * T_cur / T_total))
+                for param_group in self.run_manager.optimizer.param_groups:
+                    param_group['lr'] = warmup_lr
+                images, labels = images.to(self.run_manager.device), labels.to(self.run_manager.device)
+                # compute output
+                self.net.reset_binary_gates()  # random sample binary gates
+                self.net.unused_modules_off()  # remove unused module for speedup
+                target = self.teacher_manager.net(images)
+                output = self.run_manager.net(images)  # forward for recasting (DataParallel)
+                # loss
+                loss = self.run_manager.MSE(output, target)
+                # loss
+#                if self.run_manager.run_config.label_smoothing > 0:
+#                    loss = cross_entropy_with_label_smoothing(
+#                        output, labels, self.run_manager.run_config.label_smoothing
+#                    )
+#                else:
+#                    loss = self.run_manager.criterion(output, labels)
+                # measure accuracy and record loss
+                acc1, acc5 = accuracy(output, labels, topk=(1, 5))
+                losses.update(loss, images.size(0))
+                top1.update(acc1[0], images.size(0))
+                top5.update(acc5[0], images.size(0))
+                # compute gradient and do SGD step
+                self.run_manager.net.zero_grad()  # zero grads of weight_param, arch_param & binary_param
+                loss.backward()
+                self.run_manager.optimizer.step()  # update weight parameters
+                # unused modules back
+                self.net.unused_modules_back()
+                # measure elapsed time
+                batch_time.update(time.time() - end)
+                end = time.time()
+
+                if print_log and i % self.run_manager.run_config.print_frequency == 0 or i + 1 == nBatch:
+                    batch_log = 'Warmup Train [{0}][{1}/{2}]\t' \
+                                'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t' \
+                                'Data {data_time.val:.3f} ({data_time.avg:.3f})\t' \
+                                'Loss {losses.val:.4f} ({losses.avg:.4f})\t' \
+                                'Top-1 acc {top1.val:.3f} ({top1.avg:.3f})\t' \
+                                'Top-5 acc {top5.val:.3f} ({top5.avg:.3f})\tlr {lr:.5f}'. \
+                        format(epoch + 1, i, nBatch - 1, batch_time=batch_time, data_time=data_time,
+                               losses=losses, top1=top1, top5=top5, lr=warmup_lr)
+                    self.run_manager.write_log(batch_log, 'train')
+            valid_res, flops, latency = self.validate_supernet()
+            val_log = 'Warmup Valid [{0}/{1}]\tloss {2:.3f}\ttop-1 acc {3:.3f}\ttop-5 acc {4:.3f}\t' \
+                      'Train top-1 {top1.avg:.3f}\ttop-5 {top5.avg:.3f}\tflops: {5:.1f}M'. \
+                format(epoch + 1, warmup_epochs, *valid_res, flops / 1e6, top1=top1, top5=top5)
+            if self.arch_search_config.target_hardware not in [None, 'flops']:
+                val_log += '\t' + self.arch_search_config.target_hardware + ': %.3fms' % latency
+            self.run_manager.write_log(val_log, 'valid')
+            self.warmup = epoch + 1 < warmup_epochs
+
+#            state_dict = self.net.state_dict()
+#            # rm architecture parameters & binary gates
+#            for key in list(state_dict.keys()):
+#                if 'AP_path_alpha' in key or 'AP_path_wb' in key:
+#                    state_dict.pop(key)
+#            checkpoint = {
+#                'state_dict': state_dict,
+#                'warmup': self.warmup,
+#            }
+#            if self.warmup:
+#                checkpoint['warmup_epoch'] = epoch,
+#            self.run_manager.save_model(checkpoint, model_name='warmup.pth.tar')
+
+    def train_whole_network(self, scale=0.01, fix_net_weights=False, add_ce=True, print_train_log=False):
         data_loader = self.run_manager.run_config.train_loader
         nBatch = len(data_loader)
         if fix_net_weights:
             data_loader = [(0, 0)] * nBatch
+
+        # print current network architecture
+        self.write_log('-' * 30 + 'Current Architecture' + '-' * 30, prefix='arch')
+        for idx, block in enumerate(self.net.blocks):
+            self.write_log('%d. %s' % (idx, block.module_str), prefix='arch')
+        self.write_log('-' * 60, prefix='arch')
 
         weight_param_num = len(list(self.net.weight_parameters()))
         print(
@@ -437,6 +610,7 @@ class RecastingArchSearchRunManager:
 
         #self.build_architecture_optimizer()
         self.run_manager.downscale_lr_finetuning(scale)
+        self.run_manager.build_optimizer()
 
         for epoch in range(self.run_manager.start_epoch, self.run_manager.run_config.n_epochs):
             print('\n', '-' * 30, 'Train epoch: %d' % (epoch + 1), '-' * 30, '\n')
@@ -461,18 +635,17 @@ class RecastingArchSearchRunManager:
                 if not fix_net_weights:
                     images, labels = images.to(self.run_manager.device), labels.to(self.run_manager.device)
                     # compute output
-                    self.net.reset_binary_gates()  # random sample binary gates
-                    self.net.unused_modules_off()  # remove unused module for speedup
                     target = self.teacher_manager.net(images)
                     output = self.run_manager.net(images)  # forward for recasting (DataParallel)
                     # loss
-                    if self.run_manager.run_config.label_smoothing > 0:
-                        loss = cross_entropy_with_label_smoothing(
-                            output, labels, self.run_manager.run_config.label_smoothing
-                        )
-                    else:
-                        loss = self.run_manager.criterion(output, labels)
-                    loss += self.run_manager.MSE(output, target)
+                    loss = self.run_manager.MSE(output, target)
+                    if add_ce :
+                         if self.run_manager.run_config.label_smoothing > 0:
+                             loss += cross_entropy_with_label_smoothing(
+                                 output, labels, self.run_manager.run_config.label_smoothing
+                             )
+                         else:
+                             loss += self.run_manager.criterion(output, labels)
                     # measure accuracy and record loss
                     acc1, acc5 = accuracy(output, labels, topk=(1, 5))
                     losses.update(loss, images.size(0))
@@ -482,13 +655,11 @@ class RecastingArchSearchRunManager:
                     self.run_manager.net.zero_grad()  # zero grads of weight_param, arch_param & binary_param
                     loss.backward()
                     self.run_manager.optimizer.step()  # update weight parameters
-                    # unused modules back
-                    self.net.unused_modules_back()
                 # measure elapsed time
                 batch_time.update(time.time() - end)
                 end = time.time()
                 # training log
-                if i % self.run_manager.run_config.print_frequency == 0 or i + 1 == nBatch:
+                if print_train_log and (i % self.run_manager.run_config.print_frequency == 0 or i + 1 == nBatch):
                     batch_log = 'Train [{0}][{1}/{2}]\t' \
                                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t' \
                                 'Data Time {data_time.val:.3f} ({data_time.avg:.3f})\t' \
@@ -499,11 +670,6 @@ class RecastingArchSearchRunManager:
                                losses=losses, top1=top1, top5=top5, lr=lr)
                     self.run_manager.write_log(batch_log, 'train')
 
-            # print current network architecture
-            self.write_log('-' * 30 + 'Current Architecture [%d]' % (epoch + 1) + '-' * 30, prefix='arch')
-            for idx, block in enumerate(self.net.blocks):
-                self.write_log('%d. %s' % (idx, block.module_str), prefix='arch')
-            self.write_log('-' * 60, prefix='arch')
 
             # Modifier : shorm21
             if self.arch_search_config.print_arch_params is True :
@@ -514,27 +680,36 @@ class RecastingArchSearchRunManager:
 
             # validate
             if (epoch + 1) % self.run_manager.run_config.validation_frequency == 0:
-                (val_loss, val_top1, val_top5), flops, latency = self.validate()
+                (val_loss, val_top1, val_top5), flops, latency = self.validate_normalnet()
                 self.run_manager.best_acc = max(self.run_manager.best_acc, val_top1)
                 val_log = 'Valid [{0}/{1}]\tloss {2:.3f}\ttop-1 acc {3:.3f} ({4:.3f})\ttop-5 acc {5:.3f}\t' \
                           'Train top-1 {top1.avg:.3f}\ttop-5 {top5.avg:.3f}\t' \
                           'Entropy {entropy.val:.5f}\t' \
-                          'Latency-{6}: {7:.3f}ms\tFlops: {8:.2f}M'. \
+                          'Latency-{6}: {7:.3f}ms\tFlops: {8:.2f}M\tlr {lr:.5f}'. \
                     format(epoch + 1, self.run_manager.run_config.n_epochs, val_loss, val_top1,
                            self.run_manager.best_acc, val_top5, self.arch_search_config.target_hardware,
-                           latency, flops / 1e6, entropy=entropy, top1=top1, top5=top5)
+                           latency, flops / 1e6, entropy=entropy, top1=top1, top5=top5, lr=lr)
                 self.run_manager.write_log(val_log, 'valid')
+
+            if self.teacher_info and (epoch + 1) % self.run_manager.run_config.validation_frequency == 0:
+                t_val_log = '[Teacher Info]\tLoss: -----\tTest top-1 acc {0:.3f}\ttop-5 acc {1:.3f}\t' \
+                        'Latency: {3:.3f}ms\tFlops: {2:.2f}M'. \
+                    format(self.teacher_top1,
+                           self.teacher_top5,
+                           self.teacher_flops / 1e6,
+                           self.teacher_latency)
+                self.run_manager.write_log(t_val_log, 'valid')
             # save model
-            self.run_manager.save_model({
-                'warmup': False,
-                'epoch': epoch,
-                'weight_optimizer': self.run_manager.optimizer.state_dict(),
-                'arch_optimizer': self.arch_optimizer.state_dict(),
-                'state_dict': self.net.state_dict()
-            })
+#            self.run_manager.save_model({
+#                'warmup': False,
+#                'epoch': epoch,
+#                'weight_optimizer': self.run_manager.optimizer.state_dict(),
+#                'arch_optimizer': self.arch_optimizer.state_dict(),
+#                'state_dict': self.net.state_dict()
+#            })
 
         # convert to normal network according to architecture parameters
-        normal_net = self.net.cpu().convert_to_normal_net()
+        normal_net = self.net.cpu()
         print('Total training params: %.2fM' % (count_parameters(normal_net) / 1e6))
         os.makedirs(os.path.join(self.run_manager.path, 'learned_net'), exist_ok=True)
         json.dump(normal_net.config, open(os.path.join(self.run_manager.path, 'learned_net/net.config'), 'w'), indent=4)
@@ -546,8 +721,9 @@ class RecastingArchSearchRunManager:
             {'state_dict': normal_net.state_dict(), 'dataset': self.run_manager.run_config.dataset},
             os.path.join(self.run_manager.path, 'learned_net/init')
         )
+        self.net.to(self.run_manager.device)
 
-    def train_blocks(self, student_idxs, teacher_idxs, fix_net_weights=False):
+    def train_blocks(self, student_idxs, teacher_idxs, arch_option = 'both', fix_net_weights=False, print_train_log=False):
         data_loader = self.run_manager.run_config.train_loader
         nBatch = len(data_loader)
         if fix_net_weights:
@@ -563,7 +739,19 @@ class RecastingArchSearchRunManager:
 
         update_schedule = self.arch_search_config.get_update_schedule(nBatch)
 
-        self.build_architecture_optimizer_recasting(student_idxs)
+        self.run_manager.net.initialize_zero()
+        self.run_manager.build_optimizer()
+        if self.basic_net is False :
+            if arch_option is 'both':
+                self.build_architecture_optimizer_recasting(student_idxs)
+            elif arch_option is 'zero':
+                self.build_architecture_optimizer_zero(student_idxs)
+                self.net.train_zero()
+            elif arch_option is 'arch':
+                self.build_architecture_optimizer_arch(student_idxs)
+
+            else :
+                raise NotImplementedError
         s_i = student_idxs[-1]
         t_i = teacher_idxs[-1]
 
@@ -580,6 +768,8 @@ class RecastingArchSearchRunManager:
             self.run_manager.net.train()
             self.teacher_manager.net.train(False)
 
+            self.run_manager.net.zero_alpha_step(epoch, self.run_manager.run_config.n_epochs)
+
             end = time.time()
             for i, (images, labels) in enumerate(data_loader):
                 data_time.update(time.time() - end)
@@ -588,8 +778,12 @@ class RecastingArchSearchRunManager:
                     self.run_manager.optimizer, epoch, batch=i, nBatch=nBatch
                 )
                 # network entropy
-                net_entropy = self.net.entropy()
-                entropy.update(net_entropy.data.item() / arch_param_num, 1)
+                if self.basic_net is True :
+                    entropy.val = 0
+                    entropy.avg = 0
+                else :
+                    net_entropy = self.net.entropy()
+                    entropy.update(net_entropy.data.item() / arch_param_num, 1)
                 # train weight parameters if not fix_net_weights
                 if not fix_net_weights:
                     images, labels = images.to(self.run_manager.device), labels.to(self.run_manager.device)
@@ -599,6 +793,8 @@ class RecastingArchSearchRunManager:
                     target = self.teacher_manager.net.forward_recasting(images, t_i)
                     output = self.run_manager.net.forward_recasting(images, s_i)  # forward for recasting (DataParallel)
                     # loss
+#                    print('target (teacher) : ', target.shape)
+#                    print('output (student) : ', output.shape)
                     loss = self.run_manager.MSE(output, target)
                     # compute gradient and do SGD step
                     self.run_manager.net.zero_grad()  # zero grads of weight_param, arch_param & binary_param
@@ -613,12 +809,14 @@ class RecastingArchSearchRunManager:
                     top1.update(acc1[0], images.size(0))
                     top5.update(acc5[0], images.size(0))
                 # skip architecture parameter updates in the first epoch
-                if epoch > 0:
+
+                if epoch > 0 and self.basic_net is False:
+                    #print('before grad_step')
                     # update architecture parameters according to update_schedule
                     for j in range(update_schedule.get(i, 0)):
                         start_time = time.time()
                         if isinstance(self.arch_search_config, GradientArchSearchConfig):
-                            arch_loss, exp_value = self.gradient_step_recasting(s_i)
+                            arch_loss, exp_value = self.gradient_step_recasting(student_idxs, s_i, t_i)
                             used_time = time.time() - start_time
                             log_str = 'Architecture [%d-%d]\t Time %.4f\t Loss %.4f\t %s %s' % \
                                       (epoch + 1, i, used_time, arch_loss,
@@ -626,11 +824,12 @@ class RecastingArchSearchRunManager:
                             self.write_log(log_str, prefix='gradient', should_print=False)
                         else:
                             raise ValueError('do not support: %s' % type(self.arch_search_config))
+                    #print('before grad_step end')
                 # measure elapsed time
                 batch_time.update(time.time() - end)
                 end = time.time()
                 # training log
-                if i % self.run_manager.run_config.print_frequency == 0 or i + 1 == nBatch:
+                if print_train_log and (i % self.run_manager.run_config.print_frequency == 0 or i + 1 == nBatch):
                     batch_log = 'Train [{0}][{1}/{2}]\t' \
                                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t' \
                                 'Data Time {data_time.val:.3f} ({data_time.avg:.3f})\t' \
@@ -662,33 +861,62 @@ class RecastingArchSearchRunManager:
                 val_log = 'Valid [{0}/{1}]\tloss {2:.3f}\ttop-1 acc {3:.3f} ({4:.3f})\ttop-5 acc {5:.3f}\t' \
                           'Train top-1 {top1.avg:.3f}\ttop-5 {top5.avg:.3f}\t' \
                           'Entropy {entropy.val:.5f}\t' \
-                          'Latency-{6}: {7:.3f}ms\tFlops: {8:.2f}M'. \
+                          'Latency-{6}: {7:.3f}ms\tFlops: {8:.2f}M\tlr {lr:.5f}'. \
                     format(epoch + 1, self.run_manager.run_config.n_epochs, val_loss, val_top1,
                            self.run_manager.best_acc, val_top5, self.arch_search_config.target_hardware,
-                           latency, flops / 1e6, entropy=entropy, top1=top1, top5=top5)
+                           latency, flops / 1e6, entropy=entropy, top1=top1, top5=top5, lr=lr)
                 self.run_manager.write_log(val_log, 'valid')
+
+            if self.teacher_info and (epoch + 1) % self.run_manager.run_config.validation_frequency == 0:
+                t_val_log = '[Teacher Info]\tLoss: -----\tTest top-1 acc {0:.3f}\ttop-5 acc {1:.3f}\t' \
+                        'Latency: {3:.3f}ms\tFlops: {2:.2f}M'. \
+                    format(self.teacher_top1,
+                           self.teacher_top5,
+                           self.teacher_flops / 1e6,
+                           self.teacher_latency)
+                self.run_manager.write_log(t_val_log, 'valid')
             # save model
-            self.run_manager.save_model({
-                'warmup': False,
-                'epoch': epoch,
-                'weight_optimizer': self.run_manager.optimizer.state_dict(),
-                'arch_optimizer': self.arch_optimizer.state_dict(),
-                'state_dict': self.net.state_dict()
-            })
+#            self.run_manager.save_model({
+#                'warmup': False,
+#                'epoch': epoch,
+#                'weight_optimizer': self.run_manager.optimizer.state_dict(),
+#                'arch_optimizer': self.arch_optimizer.state_dict(),
+#                'state_dict': self.net.state_dict()
+#            })
 
         # convert to normal network according to architecture parameters
         #self.run_manager.net = self.net.cpu().convert_to_normal_net_recasting(block_idxs)
-        self.net.convert_to_normal_net_recasting(block_idxs)
+        if arch_option != 'arch' :
+            self.net.convert_to_normal_net_recasting(student_idxs)
         print('Current block recasting is finished')
-        print('Target blocks : ', block_idxs)
+        print('Target blocks : ', student_idxs)
+        print('after conversion', s_i, t_i)
+        (val_loss, val_top1, val_top5), flops, latency = self.validate_recasting(s_i, t_i)
+        self.run_manager.best_acc = max(self.run_manager.best_acc, val_top1)
+        val_log = 'Valid [{0}/{1}]\tloss {2:.3f}\ttop-1 acc {3:.3f} ({4:.3f})\ttop-5 acc {5:.3f}\t' \
+                  'Train top-1 {top1.avg:.3f}\ttop-5 {top5.avg:.3f}\t' \
+                  'Entropy {entropy.val:.5f}\t' \
+                  'Latency-{6}: {7:.3f}ms\tFlops: {8:.2f}M'. \
+            format(epoch + 1, self.run_manager.run_config.n_epochs, val_loss, val_top1,
+                   self.run_manager.best_acc, val_top5, self.arch_search_config.target_hardware,
+                   latency, flops / 1e6, entropy=entropy, top1=top1, top5=top5)
+        self.run_manager.write_log(val_log, 'valid')
 
     def rl_update_step(self, fast=True):
         raise NotImplementedError
 
-    def build_architecture_oprimizer(self):
+    def build_architecture_optimizer(self):
         self.arch_optimizer = self.arch_search_config.build_optimizer(self.net.architecture_parameters())
 
     def build_architecture_optimizer_recasting(self, block_idxs):
+        # build architecture optimizer
+        self.arch_optimizer = self.arch_search_config.build_optimizer(self.net.total_architecture_parameters_recasting(block_idxs))
+
+    def build_architecture_optimizer_zero(self, block_idxs):
+        # build architecture optimizer
+        self.arch_optimizer = self.arch_search_config.build_optimizer(self.net.zero_parameters_recasting(block_idxs))
+
+    def build_architecture_optimizer_arch(self, block_idxs):
         # build architecture optimizer
         self.arch_optimizer = self.arch_search_config.build_optimizer(self.net.architecture_parameters_recasting(block_idxs))
 
@@ -719,7 +947,7 @@ class RecastingArchSearchRunManager:
         if self.arch_search_config.target_hardware is None:
             expected_value = None
         elif self.arch_search_config.target_hardware == 'mobile':
-            expected_value = self.net.expected_latency(self.run_manager.latency_estimator)
+            expected_value = self.net.expected_latency(self.run_manager.latency_model)
         elif self.arch_search_config.target_hardware == 'flops':
             data_shape = [1] + list(self.run_manager.run_config.data_provider.data_shape)
             input_var = torch.zeros(data_shape, device=self.run_manager.device)
@@ -745,7 +973,7 @@ class RecastingArchSearchRunManager:
         )
         return loss.data.item(), expected_value.item() if expected_value is not None else None
 
-    def gradient_step_recasting(self, matching_idx):
+    def gradient_step_recasting(self, student_idxs, s_i, t_i):
         assert isinstance(self.arch_search_config, GradientArchSearchConfig)
         if self.arch_search_config.data_batch is None:
             self.run_manager.run_config.valid_loader.batch_sampler.batch_size = \
@@ -757,7 +985,8 @@ class RecastingArchSearchRunManager:
         self.teacher_manager.net.train(False)
         self.run_manager.net.train()
         # Mix edge mode
-        MixedEdge.MODE = self.arch_search_config.binary_mode
+        #MixedEdge.MODE = self.arch_search_config.binary_mode
+        MixedEdge_v2.MODE = self.arch_search_config.binary_mode
         time1 = time.time()  # time
         # sample a batch of data from validation set
         images, labels = self.run_manager.run_config.valid_next_batch
@@ -766,42 +995,78 @@ class RecastingArchSearchRunManager:
         # compute output
         self.net.reset_binary_gates()  # random sample binary gates
         self.net.unused_modules_off()  # remove unused module for speedup
-        target = self.teacher_manager.net.forward_recasting(images, matching_idx)
-        output = self.run_manager.net.forward_recasting(images, matching_idx)  # forward for recasting (DataParallel)
+        target = self.teacher_manager.net.forward_recasting(images, t_i)
+        output = self.run_manager.net.forward_recasting(images, s_i)  # forward for recasting (DataParallel)
         time3 = time.time()  # time
         # loss
         mse_loss = self.run_manager.MSE(output, target)
+
         if self.arch_search_config.target_hardware is None:
             expected_value = None
         elif self.arch_search_config.target_hardware == 'mobile':
-            expected_value = self.net.expected_latency(self.run_manager.latency_estimator)
+            expected_value = self.net.expected_latency(self.run_manager.latency_model, student_idxs)
         elif self.arch_search_config.target_hardware == 'flops':
             data_shape = [1] + list(self.run_manager.run_config.data_provider.data_shape)
             input_var = torch.zeros(data_shape, device=self.run_manager.device)
-            expected_value = self.net.expected_flops(input_var)
+            expected_value = self.net.expected_flops(input_var, student_idxs)
+            expected_value = torch.tensor(expected_value)
         else:
             raise NotImplementedError
+
+
         loss = self.arch_search_config.add_regularization_loss(mse_loss, expected_value)
-        # compute gradient and do SGD step
+        if self.arch_search_config.penalty == 'l1':
+            penalty = self.arch_search_config.reverse_l1_penalty(self.net.zero_parameters_recasting(student_idxs))
+        elif self.arch_search_config.penalty == 'l2':
+            penalty = self.arch_search_config.reverse_l2_penalty(self.net.zero_parameters_recasting(student_idxs))
+        elif self.arch_search_config.penalty == 'cosine':
+            penalty = self.arch_search_config.reverse_cosine_penalty(self.net.zero_parameters_recasting(student_idxs))
+        elif self.arch_search_config.penalty == None:
+            penalty = 0
+        else:
+            raise NotImplementedError
+        if penalty != 0 :
+            loss += self.arch_search_config.lambda_arch * penalty
+# compute gradient and do SGD step
         self.run_manager.net.zero_grad()  # zero grads of weight_param, arch_param & binary_param
         loss.backward()
         # set architecture parameter gradients
         self.net.set_arch_param_grad()
         self.arch_optimizer.step()
-        if MixedEdge.MODE == 'two':
+        #if MixedEdge.MODE == 'two':
+        if MixedEdge_v2.MODE == 'two':
             self.net.rescale_updated_arch_param()
         # back to normal mode
         self.net.unused_modules_back()
-        MixedEdge.MODE = None
+        #MixedEdge.MODE = None
+        MixedEdge_v2.MODE = None
         time4 = time.time()  # time
         self.write_log(
             '(%.4f, %.4f, %.4f)' % (time2 - time1, time3 - time2, time4 - time3), 'gradient',
             should_print=False, end='\t'
         )
+
         return loss.data.item(), expected_value.item() if expected_value is not None else None
 
     def train_teacher(self, fix_net_weights=False):
         self.teacher_manager.train()
 
-    def validate_teacher(self, fix_net_weights=False):
-        self.teacher_manager.validate()
+    def set_teacher_info(self, teacher_info, top1, top5, flops, latency):
+        self.teacher_info = teacher_info
+        if self.teacher_info :
+            self.teacher_top1 = top1
+            self.teacher_top5 = top5
+            self.teacher_flops = flops
+            self.teacher_latency = latency
+
+    def convert_to_normal_net(self):
+        self.run_manager.net = self.run_manager.net.cpu().convert_to_normal_net()
+        self.run_manager.net.to(self.run_manager.device)
+        return self.run_manager.net.config
+#    def validate_teacher(self, fix_net_weights=False):
+#        self.teacher_manager.validate()
+    
+    def build_from_config(self, config):
+        self.run_manager.net = self.run_manager.net.build_from_config(config)
+        self.run_manager.net.to(self.run_manager.device)
+

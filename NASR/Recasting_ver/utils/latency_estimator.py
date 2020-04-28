@@ -25,14 +25,14 @@ def download_url(url, model_dir='~/.torch/proxyless_nas', overwrite=False):
         urlretrieve(url, cached_file)
     return cached_file
 
-
 class LatencyEstimator(object):
     def __init__(self, url='https://hanlab.mit.edu/files/proxylessNAS/LatencyTools/mobile_trim.yaml'):
-        fname = download_url(url, overwrite=True)
-
-        with open(fname, 'r') as fp:
-            self.lut = yaml.load(fp)
-
+#        fname = download_url(url, overwrite=True)
+#
+#        with open(fname, 'r') as fp:
+#            self.lut = yaml.load(fp)
+#
+        pass
     @staticmethod
     def repr_shape(shape):
         if isinstance(shape, (list, tuple)):
@@ -66,6 +66,35 @@ class LatencyEstimator(object):
 #        return self.lut[key]['mean']
         return 0
 
+class MyLatencyEstimator(object):
+    def __init__(self, filename = None):
+
+        with open(filename, 'r') as fp:
+            self.lut = yaml.load(fp)
+
+    @staticmethod
+    def repr_shape(shape: int):
+        return  str(shape)+'x'+str(shape)
+
+    def predict(self, ltype: str, fsize, stride, in_channels, out_channels):
+        """
+        :param ltype:
+            Layer type must be one of the followings
+                1. `Conv`: The initial 3x3 conv with stride 2.
+                2. `Conv_1`: The upsample 1x1 conv that increases num_filters by 4 times.
+                3. `Logits`: All operations after `Conv_1`.
+                4. `expanded_conv`: MobileInvertedResidual
+        :param _input: input shape (h, w, #channels)
+        :param output: output shape (h, w, #channels)
+        :param expand: expansion ratio
+        :param kernel: kernel size
+        :param stride:
+        :param idskip: indicate whether has the residual connection
+        """
+        infos = [ltype, 'feature:%s' %self.repr_shape(fsize), 'input:%d' % in_channels, 'output:%d' % out_channels]
+        infos += ['stride:%d' %stride]
+        key = '-'.join(infos)
+        return self.lut[key]['mean']
 
 if __name__ == '__main__':
     est = LatencyEstimator()

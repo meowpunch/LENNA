@@ -2,8 +2,7 @@
 # Han Cai, Ligeng Zhu, Song Han
 # International Conference on Learning Representations (ICLR), 2019.
 
-from Recasting_ver.run_manager import *
-import torchprof
+from run_manager import *
 
 
 class ArchSearchConfig:
@@ -272,12 +271,7 @@ class ArchSearchRunManager:
                 # compute output
                 self.net.reset_binary_gates()  # random sample binary gates
                 self.net.unused_modules_off()  # remove unused module for speedup
-
-                # TODO: profile in warm_up
-                with torchprof.Profile(self.run_manager.net, use_cuda=True) as prof:
-                    output = self.run_manager.net(images)  # forward (DataParallel)
-                print(prof.display(show_events=True))
-
+                output = self.run_manager.net(images)  # forward (DataParallel)
                 # loss
                 if self.run_manager.run_config.label_smoothing > 0:
                     loss = cross_entropy_with_label_smoothing(
@@ -349,7 +343,6 @@ class ArchSearchRunManager:
         update_schedule = self.arch_search_config.get_update_schedule(nBatch)
 
         for epoch in range(self.run_manager.start_epoch, self.run_manager.run_config.n_epochs):
-            print(list(self.net.architecture_parameters()))
             print('\n', '-' * 30, 'Train epoch: %d' % (epoch + 1), '-' * 30, '\n')
             batch_time = AverageMeter()
             data_time = AverageMeter()
@@ -394,7 +387,7 @@ class ArchSearchRunManager:
                     loss.backward()
                     self.run_manager.optimizer.step()  # update weight parameters
                     # unused modules back
-
+                    self.net.unused_modules_back()
                 # skip architecture parameter updates in the first epoch
                 if epoch > 0:
                     # update architecture parameters according to update_schedule

@@ -9,8 +9,8 @@ import json
 
 import torch
 
-from Recasting_ver.models import *
-from Recasting_ver.run_manager import RunManager
+from models import *
+from run_manager import RunManager
 
 
 parser = argparse.ArgumentParser()
@@ -97,13 +97,13 @@ if __name__ == '__main__':
     net_config_path = '%s/net.config' % args.path
     if os.path.isfile(net_config_path):
         # load net from file
-        from Recasting_ver.models import get_net_by_name
+        from models import get_net_by_name
         net_config = json.load(open(net_config_path, 'r'))
         net = get_net_by_name(net_config['name']).build_from_config(net_config)
     else:
         # build net from args
         if 'proxyless' in args.net:
-            from Recasting_ver.models.normal_nets.proxyless_nets import proxyless_base
+            from models.normal_nets.proxyless_nets import proxyless_base
             net_config_url = 'https://hanlab.mit.edu/files/proxylessNAS/%s.config' % args.net
             net = proxyless_base(
                 net_config=net_config_url, n_classes=run_config.data_provider.n_classes,
@@ -134,7 +134,7 @@ if __name__ == '__main__':
             checkpoint = checkpoint['state_dict']
         run_manager.net.module.load_state_dict(checkpoint)
     elif 'proxyless' in args.net and not args.train:
-        from Recasting_ver.utils import download_url
+        from utils.latency_estimator import download_url
         pretrained_weight_url = 'https://hanlab.mit.edu/files/proxylessNAS/%s.pth' % args.net
         print('Load pretrained weights from %s' % pretrained_weight_url)
         init_path = download_url(pretrained_weight_url)

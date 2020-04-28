@@ -1,0 +1,208 @@
+3x3_Conv-feature:32x32-input:16-output:16-stride:1:
+    count: 
+    mean: 200
+    var: 
+5x5_Conv-feature:32x32-input:16-output:16-stride:1:
+    count: 
+    mean: 560
+    var: 
+3x3_DilatedConv-feature:32x32-input:16-output:16-stride:1:
+    count: 
+    mean: 250
+    var: 
+5x5_DilatedConv-feature:32x32-input:16-output:16-stride:1:
+    count: 
+    mean: 700
+    var: 
+3x3_DepthConv-feature:32x32-input:16-output:16-stride:1:
+    count: 
+    mean: 100
+    var: 
+5x5_DepthConv-feature:32x32-input:16-output:16-stride:1:
+    count: 
+    mean: 280
+    var: 
+3x3_DilatedDepthConv-feature:32x32-input:16-output:16-stride:1:
+    count: 
+    mean: 150
+    var: 
+5x5_DilatedDepthConv-feature:32x32-input:16-output:16-stride:1:
+    count: 
+    mean: 420
+    var: 
+3x3_MAXPool-feature:32x32-input:16-output:16-stride:1:
+    count: 
+    mean: 1
+    var: 
+3x3_AVGPool-feature:32x32-input:16-output:16-stride:1:
+    count: 
+    mean: 2
+    var: 
+3x3_Conv-feature:16x16-input:32-output:32-stride:1:
+    count: 
+    mean: 200
+    var: 
+5x5_Conv-feature:16x16-input:32-output:32-stride:1:
+    count: 
+    mean: 560
+    var: 
+3x3_DilatedConv-feature:16x16-input:32-output:32-stride:1:
+    count: 
+    mean: 250
+    var: 
+5x5_DilatedConv-feature:16x16-input:32-output:32-stride:1:
+    count: 
+    mean: 700
+    var: 
+3x3_DepthConv-feature:16x16-input:32-output:32-stride:1:
+    count: 
+    mean: 100
+    var: 
+5x5_DepthConv-feature:16x16-input:32-output:32-stride:1:
+    count: 
+    mean: 280
+    var: 
+3x3_DilatedDepthConv-feature:16x16-input:32-output:32-stride:1:
+    count: 
+    mean: 150
+    var: 
+5x5_DilatedDepthConv-feature:16x16-input:32-output:32-stride:1:
+    count: 
+    mean: 420
+    var: 
+3x3_MAXPool-feature:16x16-input:32-output:32-stride:1:
+    count: 
+    mean: 1
+    var: 
+3x3_AVGPool-feature:16x16-input:32-output:32-stride:1:
+    count: 
+    mean: 2
+    var: 
+3x3_Conv-feature:8x8-input:64-output:64-stride:1:
+    count: 
+    mean: 200
+    var: 
+5x5_Conv-feature:8x8-input:64-output:64-stride:1:
+    count: 
+    mean: 560
+    var: 
+3x3_DilatedConv-feature:8x8-input:64-output:64-stride:1:
+    count: 
+    mean: 250
+    var: 
+5x5_DilatedConv-feature:8x8-input:64-output:64-stride:1:
+    count: 
+    mean: 700
+    var: 
+3x3_DepthConv-feature:8x8-input:64-output:64-stride:1:
+    count: 
+    mean: 100
+    var: 
+5x5_DepthConv-feature:8x8-input:64-output:64-stride:1:
+    count: 
+    mean: 280
+    var: 
+3x3_DilatedDepthConv-feature:8x8-input:64-output:64-stride:1:
+    count: 
+    mean: 150
+    var: 
+5x5_DilatedDepthConv-feature:8x8-input:64-output:64-stride:1:
+    count: 
+    mean: 420
+    var: 
+3x3_MAXPool-feature:8x8-input:64-output:64-stride:1:
+    count: 
+    mean: 1
+    var: 
+3x3_AVGPool-feature:8x8-input:64-output:64-stride:1:
+    count: 
+    mean: 2
+    var: 
+3x3_Conv-feature:32x32-input:16-output:32-stride:2:
+    count: 
+    mean: 200
+    var: 
+5x5_Conv-feature:32x32-input:16-output:32-stride:2:
+    count: 
+    mean: 560
+    var: 
+3x3_DilatedConv-feature:32x32-input:16-output:32-stride:2:
+    count: 
+    mean: 250
+    var: 
+5x5_DilatedConv-feature:32x32-input:16-output:32-stride:2:
+    count: 
+    mean: 700
+    var: 
+3x3_DepthConv-feature:32x32-input:16-output:32-stride:2:
+    count: 
+    mean: 100
+    var: 
+5x5_DepthConv-feature:32x32-input:16-output:32-stride:2:
+    count: 
+    mean: 280
+    var: 
+3x3_DilatedDepthConv-feature:32x32-input:16-output:32-stride:2:
+    count: 
+    mean: 150
+    var: 
+5x5_DilatedDepthConv-feature:32x32-input:16-output:32-stride:2:
+    count: 
+    mean: 420
+    var: 
+2x2_MAXPoolExpand-feature:32x32-input:16-output:32-stride:2:
+    count: 
+    mean: 11
+    var: 
+2x2_AVGPoolExpand-feature:32x32-input:16-output:32-stride:2:
+    count: 
+    mean: 12
+    var: 
+3x3_Conv-feature:16x16-input:32-output:64-stride:2:
+    count: 
+    mean: 200
+    var: 
+5x5_Conv-feature:16x16-input:32-output:64-stride:2:
+    count: 
+    mean: 560
+    var: 
+3x3_DilatedConv-feature:16x16-input:32-output:64-stride:2:
+    count: 
+    mean: 250
+    var: 
+5x5_DilatedConv-feature:16x16-input:32-output:64-stride:2:
+    count: 
+    mean: 700
+    var: 
+3x3_DepthConv-feature:16x16-input:32-output:64-stride:2:
+    count: 
+    mean: 100
+    var: 
+5x5_DepthConv-feature:16x16-input:32-output:64-stride:2:
+    count: 
+    mean: 280
+    var: 
+3x3_DilatedDepthConv-feature:16x16-input:32-output:64-stride:2:
+    count: 
+    mean: 150
+    var: 
+5x5_DilatedDepthConv-feature:16x16-input:32-output:64-stride:2:
+    count: 
+    mean: 420
+    var: 
+2x2_MAXPoolExpand-feature:16x16-input:32-output:64-stride:2:
+    count: 
+    mean: 11
+    var: 
+2x2_AVGPoolExpand-feature:16x16-input:32-output:64-stride:2:
+    count: 
+    mean: 12
+    var: 
+3x3_Conv-feature:32x32-input:3-output:16-stride:1:
+    count: 
+    mean: 1
+    var: 
+64x10_Linear-feature:1x1-input:64-output:10-stride:1:
+    count: 
+    mean: 1
+    var: 

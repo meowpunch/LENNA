@@ -1,12 +1,9 @@
 # ProxylessNAS: Direct Neural Architecture Search on Target Task and Hardware
 # Han Cai, Ligeng Zhu, Song Han
 # International Conference on Learning Representations (ICLR), 2019.
-import torch
 
-from Recasting_ver.utils import *
+from utils import *
 from collections import OrderedDict
-
-from Recasting_ver.utils.pytorch_utils import build_activation, count_conv_flop, ShuffleLayer
 
 
 def set_layer_from_config(layer_config):
@@ -92,6 +89,8 @@ class My2DLayer(MyModule):
     """ Methods defined in MyModule """
 
     def forward(self, x):
+        if isinstance(x, int) :
+            return x
         for module in self._modules.values():
             x = module(x)
         return x
@@ -190,8 +189,15 @@ class ConvLayer(My2DLayer):
         return ConvLayer(**config)
 
     def get_flops(self, x):
+        if isinstance(x, int) :
+            return 0, x
         return count_conv_flop(self.conv, x), self.forward(x)
 
+    def expected_latency(self, fsize, latency_model):
+        return latency_model.predict(self.module_str, fsize, self.stride, self.in_channels, self.out_channels) 
+
+    def get_latency(self, fsize, latency_model):
+        return latency_model.predict(self.module_str, fsize, self.stride, self.in_channels, self.out_channels) 
 
 class DepthConvLayer(My2DLayer):
 
@@ -258,6 +264,8 @@ class DepthConvLayer(My2DLayer):
         return DepthConvLayer(**config)
 
     def get_flops(self, x):
+        if isinstance(x, int) :
+            return 0, x
         depth_flop = count_conv_flop(self.depth_conv, x)
         x = self.depth_conv(x)
         point_flop = count_conv_flop(self.point_conv, x)
@@ -265,6 +273,11 @@ class DepthConvLayer(My2DLayer):
 #        return depth_flop + point_flop, self.forward(x)
         return depth_flop + point_flop, x
 
+    def expected_latency(self, fsize, latency_model):
+        return latency_model.predict(self.module_str, fsize, self.stride, self.in_channels, self.out_channels) 
+
+    def get_latency(self, fsize, latency_model):
+        return latency_model.predict(self.module_str, fsize, self.stride, self.in_channels, self.out_channels) 
 
 class PoolingLayer(My2DLayer):
 
@@ -318,7 +331,15 @@ class PoolingLayer(My2DLayer):
         return PoolingLayer(**config)
 
     def get_flops(self, x):
+        if isinstance(x, int) :
+            return 0, x
         return 0, self.forward(x)
+
+    def expected_latency(self, fsize, latency_model):
+        return latency_model.predict(self.module_str, fsize, self.stride, self.in_channels, self.out_channels) 
+
+    def get_latency(self, fsize, latency_model):
+        return latency_model.predict(self.module_str, fsize, self.stride, self.in_channels, self.out_channels) 
 
 class PoolingExpandLayer(My2DLayer):
 
@@ -363,8 +384,7 @@ class PoolingExpandLayer(My2DLayer):
             kernel_size = (self.kernel_size, self.kernel_size)
         else:
             kernel_size = self.kernel_size
-        return '%dx%d_%sPoolExpand_%d_to_%d' % (kernel_size[0], kernel_size[1], self.pool_type.upper(),
-                                                self.in_channels, self.out_channels)
+        return '%dx%d_%sPoolExpand' % (kernel_size[0], kernel_size[1], self.pool_type.upper())
 
     @property
     def config(self):
@@ -390,10 +410,18 @@ class PoolingExpandLayer(My2DLayer):
 #        return depth_flop + point_flop, self.forward(x)
 
     def get_flops(self, x):
+        if isinstance(x, int) :
+            return 0, x
         x = self.pool(x)
         point_flop = count_conv_flop(self.point_conv, x)
         x = self.point_conv(x)
         return point_flop, x
+
+    def expected_latency(self, fsize, latency_model):
+        return latency_model.predict(self.module_str, fsize, self.stride, self.in_channels, self.out_channels) 
+
+    def get_latency(self, fsize, latency_model):
+        return latency_model.predict(self.module_str, fsize, self.stride, self.in_channels, self.out_channels) 
 
 class IdentityLayer(My2DLayer):
 
@@ -403,6 +431,9 @@ class IdentityLayer(My2DLayer):
 
     def weight_op(self):
         return None
+
+    def forward(self, x):
+        return x
 
     @property
     def module_str(self):
@@ -420,8 +451,15 @@ class IdentityLayer(My2DLayer):
         return IdentityLayer(**config)
 
     def get_flops(self, x):
+        if isinstance(x, int) :
+            return 0, x
         return 0, self.forward(x)
 
+    def expected_latency(self, fsize, latency_model):
+        return 0
+
+    def get_latency(self, fsize, latency_model):
+        return 0
 
 class LinearLayer(MyModule):
 
@@ -510,12 +548,19 @@ class LinearLayer(MyModule):
         return LinearLayer(**config)
 
     def get_flops(self, x):
+        if isinstance(x, int) :
+            return 0, x
         return self.linear.weight.numel(), self.forward(x)
 
     @staticmethod
     def is_zero_layer():
         return False
 
+    def expected_latency(self, fsize, latency_model):
+        return latency_model.predict(self.module_str, 1, 1, self.in_features, self.out_features) 
+
+    def get_latency(self, fsize, latency_model):
+        return latency_model.predict(self.module_str, 1, 1, self.in_features, self.out_features) 
 
 class MBInvertedConvLayer(MyModule):
 
@@ -585,6 +630,8 @@ class MBInvertedConvLayer(MyModule):
         return MBInvertedConvLayer(**config)
 
     def get_flops(self, x):
+        if isinstance(x, int) :
+            return 0, x
         if self.inverted_bottleneck:
             flop1 = count_conv_flop(self.inverted_bottleneck.conv, x)
             x = self.inverted_bottleneck(x)
@@ -606,18 +653,22 @@ class MBInvertedConvLayer(MyModule):
 
 class ZeroLayer(MyModule):
 
-    def __init__(self, stride):
+    def __init__(self, stride=1):
         super(ZeroLayer, self).__init__()
         self.stride = stride
 
+#    def forward(self, x):
+#        n, c, h, w = x.size()
+#        h //= self.stride
+#        w //= self.stride
+#        device = x.get_device() if x.is_cuda else torch.device('cpu')
+#        # noinspection PyUnresolvedReferences
+#        padding = torch.zeros(n, c, h, w, device=device, requires_grad=True)
+#        return padding
+
     def forward(self, x):
-        n, c, h, w = x.size()
-        h //= self.stride
-        w //= self.stride
-        device = x.get_device() if x.is_cuda else torch.device('cpu')
-        # noinspection PyUnresolvedReferences
-        padding = torch.zeros(n, c, h, w, device=device, requires_grad=False)
-        return padding
+        #return x * 0
+        return 0 
 
     @property
     def module_str(self):
@@ -635,8 +686,55 @@ class ZeroLayer(MyModule):
         return ZeroLayer(**config)
 
     def get_flops(self, x):
+        if isinstance(x, int) :
+            return 0, x
         return 0, self.forward(x)
 
     @staticmethod
     def is_zero_layer():
         return True
+
+    def expected_latency(self, fsize, latency_model):
+        return 0
+
+    def get_latency(self, fsize, latency_model):
+        return 0
+
+class MyIdentity(MyModule):
+
+    def __init__(self):
+        super(MyIdentity, self).__init__()
+
+    def forward(self, x):
+        return x * 1 
+
+    @property
+    def module_str(self):
+        return 'MyIdentity'
+
+    @property
+    def config(self):
+        return {
+            'name': MyIdentity.__name__,
+            'stride': 1
+        }
+
+    @staticmethod
+    def build_from_config(config):
+        return MyIdentity(**config)
+
+    def get_flops(self, x):
+        if isinstance(x, int) :
+            return 0, x
+        return 0, self.forward(x)
+
+    @staticmethod
+    def is_zero_layer():
+        return False
+
+    def expected_latency(self, fsize, latency_model):
+        return 0
+
+    def get_latency(self, fsize, latency_model):
+        return 0
+

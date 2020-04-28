@@ -1,8 +1,9 @@
 # NAS Recasting source code
 # shorm21
 
-from Recasting_ver.models.normal_nets.proxyless_nets import *
-
+from modules.layers import *
+from models.normal_nets.proxyless_nets import *
+import json
 
 class MobileInvertedResidualBlock(MyModule):
 

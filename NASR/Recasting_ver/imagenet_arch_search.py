@@ -4,8 +4,9 @@
 
 import argparse
 
-from Recasting_ver.models import ImagenetRunConfig
-from Recasting_ver.nas_manager import *
+from models import ImagenetRunConfig
+from nas_manager import *
+from models.super_nets.super_proxyless import SuperProxylessNASNets
 
 # ref values
 ref_values = {
@@ -156,7 +157,7 @@ if __name__ == '__main__':
     else:
         args.ref_value = ref_values[args.target_hardware]['%.2f' % args.width_mult]
     if args.arch_algo == 'grad':
-        from Recasting_ver.nas_manager import GradientArchSearchConfig
+        from nas_manager import GradientArchSearchConfig
         if args.grad_reg_loss_type == 'add#linear':
             args.grad_reg_loss_params = {'lambda': args.grad_reg_loss_lambda}
         elif args.grad_reg_loss_type == 'mul#log':
@@ -168,7 +169,7 @@ if __name__ == '__main__':
             args.grad_reg_loss_params = None
         arch_search_config = GradientArchSearchConfig(**args.__dict__)
     elif args.arch_algo == 'rl':
-        from Recasting_ver.nas_manager import RLArchSearchConfig
+        from nas_manager import RLArchSearchConfig
         arch_search_config = RLArchSearchConfig(**args.__dict__)
     else:
         raise NotImplementedError
