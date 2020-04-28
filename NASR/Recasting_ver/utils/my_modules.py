@@ -8,17 +8,20 @@ import pandas as pd
 import numpy as np
 import torch.nn as nn
 
+from util.logger import init_logger
+
 
 class MyModule(nn.Module):
 
     def __init__(self):
         self._size_list = None
+        self.logger = init_logger()
         self.latency_list = []
         super(MyModule, self).__init__()
 
     @property
     def latency_df(self):
-        return pd.DataFrame(data=self.latency_list)
+        return pd.DataFrame(data=self.unit_transform(self.latency_list))
 
     @property
     def size_list(self):
@@ -32,7 +35,10 @@ class MyModule(nn.Module):
     @staticmethod
     def unit_transform(time_list: list):
         # sec to micro sec
-        return list(map(lambda x: x if x is np.nan else x * 1000000, time_list))
+        if isinstance(time_list[0], list):
+            return list(map(lambda l: list(map(lambda x: x if x is np.nan else x * 1000000, l)), time_list))
+        else:
+            return list(map(lambda x: x if x is np.nan else x * 1000000, time_list))
 
     def forward(self, x):
         raise NotImplementedError

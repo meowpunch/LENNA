@@ -84,7 +84,7 @@ class LatencyEstimator:
         latency_by_binary_gates = []
         for i in range(reset_times):
             self.model.reset_binary_gates()
-            latency_by_binary_gates.append(self.expect_latency(n_iter=1000))
+            latency_by_binary_gates.append(self.expect_latency(n_iter=100))
 
         self.logger.info("latency by binary gates: {}".format(latency_by_binary_gates))
 
@@ -158,7 +158,7 @@ class LatencyEstimator:
                     break
 
                 images, labels = data
-                self.logger.info("outer shape: {}".format(images.shape))
+                # self.logger.info("outer shape: {}".format(images.shape))
 
                 # open the binary gate
                 # self.model.reset_binary_gates()
@@ -166,8 +166,8 @@ class LatencyEstimator:
 
                 # time
                 start = time.time()
-                self.p_model(images)
-                outside_total_time.append((time.time() - start) * 1000000)
+                self.model(images.cuda())
+                outside_total_time.append((time.time() - start))
 
                 # autograd
                 # with torch.autograd.profiler.profile(use_cuda=True) as prof:
@@ -189,15 +189,18 @@ class LatencyEstimator:
                 # ))
 
                 count += 1
-
-            outside_df = pd.DataFrame(data=outside_total_time, columns=["outside_total"])
-            combined_df = pd.concat([self.p_model.module.latency_df, outside_df], axis=1)
+                if count % 10 == 0:
+                    self.logger.info("{} times estimation".format(count))
+            # for block in self.model.blocks:
+            #     self.logger.info("{}".format(block.latency_df))
+            outside_df = pd.DataFrame(data=self.model.unit_transform(outside_total_time), columns=["outside_total"])
+            combined_df = pd.concat([self.model.latency_df.rename(columns={0: "inside_total"}), outside_df, self.model.blocks[0].latency_df], axis=1)   # .rename(columns={0: "inside_total", 1: "total"})
             from util.outlier import cut_outlier
-            self.logger.info("time: \n{} \n{}".format(
-                cut_outlier(combined_df[4:].rename(columns={0: "block", 1: "total"}),
-                            min_border=0.25, max_border=0.75).describe(),
-                combined_df.describe()
+            cut_df = cut_outlier(combined_df, min_border=0.25, max_border=0.75)
+            # self.logger.info("\n{}".format(combined_df))
+            self.logger.info("\ntime: \n{} \nafter cut oulier: \n{}".format(
+                combined_df.describe(),
+                cut_df.describe()
             ))
-            latency_avg = l_sum / (count - 1)
 
-        return latency_list, latency_avg
+        return combined_df, cut_df

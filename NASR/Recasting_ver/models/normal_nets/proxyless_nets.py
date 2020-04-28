@@ -1,6 +1,7 @@
 # ProxylessNAS: Direct Neural Architecture Search on Target Task and Hardware
 # Han Cai, Ligeng Zhu, Song Han
 # International Conference on Learning Representations (ICLR), 2019.
+import time
 
 from Recasting_ver.modules.layers import *
 import json
@@ -217,15 +218,23 @@ class DartsRecastingBlock(MyModule):
         self.layer_list = nn.ModuleList(layer_list)
 
     def forward(self, x):
-       
+        t0 = time.time()
+        t_list = []
+
         x_list = [x]
         for op_list in self.layer_list :
+            t1 = time.time()
             x_out = op_list[0](x_list[0])
-            for x_in, op in zip(x_list[1:], op_list[1:]) :
+            t2 = time.time()
+            t_list.append(t2 - t1)
+            for x_in, op in zip(x_list[1:], op_list[1:]):
                 x_out = x_out + op(x_in)
-
+                t_list.append(time.time() - t2)
+                t2 = time.time()
             x_list += [x_out]
 
+        self.latency_list.append(t_list + [time.time() - t0])
+        # self.logger.info("{}".format(self.latency_list))
 #        if x_list[-1].requires_grad is False :
 #            print('Path does not exist')
 #            raise NotImplementedError
@@ -549,12 +558,15 @@ class DartsRecastingNet(MyNetwork):
         self.classifier = classifier
 
     def forward(self, x):
+        start = time.time()
+        # self.logger.info("inner shape: {}".format(x.shape))
         x = self.first_conv(x)
         for block in self.blocks:
             x = block(x)
         x = self.global_avg_pooling(x)
         x = x.view(x.size(0), -1)  # flatten
         x = self.classifier(x)
+        self.latency_list.append(time.time() - start)
         return x
 
     def forward_recasting(self, x, block_idx = None):

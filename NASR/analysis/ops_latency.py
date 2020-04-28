@@ -62,8 +62,8 @@ class OpsAnalyzer:
 
             # model.latency_list = []
             model(self.X)
-            if i % 20 is 0:
-                self.logger.info("estimate {i} times".format(i=i))
+            # if i % 20 is 0:
+            #     self.logger.info("estimate {i} times".format(i=i))
 
         self.logger.info(model.size_list)
 

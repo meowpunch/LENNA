@@ -24,9 +24,9 @@ class MyModel1(MyModule):
     def __init__(self):
         super(MyModel1, self).__init__()
         self.modules = {
-            '5x5 conv': nn.Conv2d(1, 16, 5, padding=padding_5),
+            '5x5 conv': nn.Conv2d(16, 16, 5, padding=padding_5),
             '3x3 conv': nn.Conv2d(16, 16, 3, padding=padding_3),
-            '7x7 conv': nn.Conv2d(16, 1, 7, padding=padding_7)
+            '7x7 conv': nn.Conv2d(16, 16, 7, padding=padding_7)
         }
         self.choices = nn.ModuleDict(self.modules)
 
@@ -92,9 +92,9 @@ class MyModel3(MyModule):
     def __init__(self):
         super(MyModel3, self).__init__()
         self.modules = {
-            '7x7 conv': nn.Conv2d(1, 16, 7, padding=padding_7),
+            '7x7 conv': nn.Conv2d(16, 16, 7, padding=padding_7),
             '3x3 conv': nn.Conv2d(16, 16, 3, padding=padding_3),
-            '5x5 conv': nn.Conv2d(16, 1, 5, padding=padding_5)
+            '5x5 conv': nn.Conv2d(16, 16, 5, padding=padding_5)
         }
         self.choices = nn.ModuleDict(self.modules)
 
