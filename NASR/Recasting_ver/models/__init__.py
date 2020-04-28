@@ -2,9 +2,9 @@
 # Han Cai, Ligeng Zhu, Song Han
 # International Conference on Learning Representations (ICLR), 2019.
 
-from models.normal_nets.proxyless_nets import ProxylessNASNets
+from Recasting_ver.models.normal_nets.proxyless_nets import ProxylessNASNets
 #from run_manager import RunConfig
-from run_recasting_manager import RunConfig
+from Recasting_ver.run_recasting_manager import RunConfig
 
 
 def get_net_by_name(name):

@@ -5,9 +5,9 @@
 from queue import Queue
 import copy
 
-from modules.mix_op import *
-from models.normal_nets.proxyless_nets import *
-from utils import LatencyEstimator
+from Recasting_ver.modules.mix_op import *
+from Recasting_ver.models.normal_nets.proxyless_nets import *
+from Recasting_ver.utils import LatencyEstimator
 
 
 class SuperProxylessNASNets(ProxylessNASNets):

@@ -12,9 +12,9 @@ import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.optim
 
-from utils import *
-from models.normal_nets.proxyless_nets import DartsRecastingNet
-from modules.mix_op import MixedEdge, MixedEdge_v2
+from Recasting_ver.utils import *
+from Recasting_ver.models.normal_nets.proxyless_nets import DartsRecastingNet
+from Recasting_ver.modules.mix_op import MixedEdge, MixedEdge_v2
 
 
 class RunConfig:

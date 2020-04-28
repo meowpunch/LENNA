@@ -2,7 +2,7 @@
 # Han Cai, Ligeng Zhu, Song Han
 # International Conference on Learning Representations (ICLR), 2019.
 
-from modules.layers import *
+from Recasting_ver.modules.layers import *
 import json
 
 

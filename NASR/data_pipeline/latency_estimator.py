@@ -112,12 +112,12 @@ class LatencyEstimator:
                 latency_list.append((time.time() - start) * 1000000)  # sec to micro sec
 
                 count += 1
+                if count % 100 == 0:
+                    self.logger.info("{} times estimation".format(count))
 
             latency = pd.Series(data=latency_list, name="latency")
             filtered = cut_outlier(latency, min_border=0.25, max_border=0.75)
 
-            if count%100 is 0:
-                self.logger.info("{} times estimation".format(count))
             # describe make time more complex,
             # self.logger.info("\nlatency: \n{} \nafter filtering: \n{}".format(
             #     latency.describe(), filtered.describe()
