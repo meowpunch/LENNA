@@ -18,7 +18,7 @@ class OpsAnalyzer:
         self.counts = counts
         # batch_size(32 or 64) X depth X width X height
         self.X = (torch.rand(size=size).uniform_() > 0.8).float()
-        self.models = [MyModel1()]  # [MyModel1(), MyModel2(), MyModel3()]  # [MyModel4(), Parallel1(), Parallel2()]
+        self.models = [MyModel1(), MyModel3()]  # [MyModel1(), MyModel2(), MyModel3()]  # [MyModel4(), Parallel1(), Parallel2()]
 
     def execute(self):
         return self.process()
@@ -39,9 +39,9 @@ class OpsAnalyzer:
         rows = []
         rows0 = []
         for i in range(self.counts):
-            with torchprof.Profile(model, use_cuda=True) as prof:
-                model(self.X)
-            rows0.append(sum(get_time(prof=prof, target=model.__class__.__name__)))
+            # with torchprof.Profile(model, use_cuda=True) as prof:
+            #     model(self.X)
+            # rows0.append(sum(get_time(prof=prof, target=model.__class__.__name__)))
             # print(prof.display(show_events=False))
             # self cpu time total of model [torchprof]
 
@@ -56,21 +56,21 @@ class OpsAnalyzer:
                     )))
             """
 
-            with torch.autograd.profiler.profile() as prof:
-                model(self.X)
-            rows.append(prof.self_cpu_time_total)
+            # with torch.autograd.profiler.profile() as prof:
+            #     model(self.X)
+            # rows.append(prof.self_cpu_time_total)
 
             # model.latency_list = []
             model(self.X)
-            # if i % 200 is 0:
-            #     self.logger.info("estimate {i} times".format(i=i))
+            if i % 200 is 0:
+                self.logger.info("estimate {i} times".format(i=i))
 
         self.logger.info(model.size_list)
 
         'torch.autograd.Profile'
-        m_df = pd.DataFrame(rows, columns=["autograd"])
+        # m_df = pd.DataFrame(rows, columns=["autograd"])
         'torchprof'
-        m0_df = pd.DataFrame(rows0, columns=["torchprof"])
+        # m0_df = pd.DataFrame(rows0, columns=["torchprof"])
         'time'
         m1_df = pd.DataFrame(
             data=model.latency_list,
@@ -79,12 +79,12 @@ class OpsAnalyzer:
         # pd.concat([m0_df, m1_df], axis=1)
         # pd.concat([m_df, m1_df], axis=1)
         # pd.concat([m1_df, m_df, m0_df], axis=1)
-        return pd.concat([m1_df, m_df, m0_df], axis=1)
+        return m1_df
 
 
 def main():
-    df_list = OpsAnalyzer(counts=10, size=(32, 1, 32, 32)).process()
-    print(df_list)
+    df_list = OpsAnalyzer(counts=1000, size=(256, 16, 224, 224)).process()
+    print(df_list[0].describe())
 
 
 if __name__ == '__main__':

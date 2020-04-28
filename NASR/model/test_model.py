@@ -24,7 +24,7 @@ class MyModel1(MyModule):
     def __init__(self):
         super(MyModel1, self).__init__()
         self.modules = {
-            '5x5 conv': nn.Conv2d(1, 32, 5, padding=padding_5),
+            '5x5 conv': nn.Conv2d(16, 32, 5, padding=padding_5),
             '3x3 conv': nn.Conv2d(32, 64, 3, padding=padding_3),
             '7x7 conv': nn.Conv2d(64, 128, 7, padding=padding_7)
         }
@@ -54,7 +54,7 @@ class MyModel2(MyModule):
     def __init__(self):
         super(MyModel2, self).__init__()
         self.modules = {
-            '3x3 conv1': nn.Conv2d(1, 32, 3, padding=padding_3),
+            '3x3 conv1': nn.Conv2d(16, 32, 3, padding=padding_3),
             '3x3 conv2': nn.Conv2d(32, 64, 3, padding=padding_3),
             '3x3 conv3': nn.Conv2d(64, 32, 3, padding=padding_3),
             '3x3 conv4': nn.Conv2d(32, 16, 3, padding=padding_3),
@@ -92,7 +92,7 @@ class MyModel3(MyModule):
     def __init__(self):
         super(MyModel3, self).__init__()
         self.modules = {
-            '7x7 conv': nn.Conv2d(1, 32, 7, padding=padding_7),
+            '7x7 conv': nn.Conv2d(16, 32, 7, padding=padding_7),
             '3x3 conv': nn.Conv2d(32, 64, 3, padding=padding_3),
             '5x5 conv': nn.Conv2d(64, 128, 5, padding=padding_5)
         }

@@ -4,10 +4,35 @@
 
 import math
 
+import pandas as pd
+import numpy as np
 import torch.nn as nn
 
 
 class MyModule(nn.Module):
+
+    def __init__(self):
+        self._size_list = None
+        self.latency_list = []
+        super(MyModule, self).__init__()
+
+    @property
+    def latency_df(self):
+        return pd.DataFrame(data=self.latency_list)
+
+    @property
+    def size_list(self):
+        return self._size_list
+
+    @size_list.setter
+    def size_list(self, X: list):
+        if self._size_list is None:
+            self._size_list = list(map(lambda x: x.shape, X))
+
+    @staticmethod
+    def unit_transform(time_list: list):
+        # sec to micro sec
+        return list(map(lambda x: x if x is np.nan else x * 1000000, time_list))
 
     def forward(self, x):
         raise NotImplementedError
