@@ -222,7 +222,7 @@ class DartsRecastingBlock(MyModule):
         t_list = []
 
         x_list = [x]
-        for op_list in self.layer_list :
+        for op_list in self.layer_list:
             t1 = time.time()
             x_out = op_list[0](x_list[0])
             t2 = time.time()

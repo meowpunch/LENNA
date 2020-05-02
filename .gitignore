@@ -7,5 +7,6 @@ predict-latency/data-generator/data
 *.pth
 *.log
 
+data/
 cifar/
 .ipynb_checkpoints/

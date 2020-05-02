@@ -19,6 +19,9 @@ class MyModule(nn.Module):
         self.latency_list = []
         super(MyModule, self).__init__()
 
+    def reset_latency_list(self):
+        self.latency_list = []
+
     @property
     def latency_df(self):
         return pd.DataFrame(data=self.unit_transform(self.latency_list))

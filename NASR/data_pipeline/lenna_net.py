@@ -12,9 +12,6 @@ class LennaNet(DartsRecastingNet):
         LennaNet:
             first conv -> one block -> pool -> classifier
     """
-    def get_latency(self):
-        return self.latency
-
     def __init__(self, num_blocks, num_layers,
                  normal_ops, reduction_ops, block_type,
                  input_channel, n_classes=1000,

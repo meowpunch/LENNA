@@ -1,12 +1,8 @@
 import os
-from multiprocessing import Pool
-
-import torch
-import torchvision
-from torchvision.transforms import transforms
 
 from data_pipeline.core import DataPipeline
 from util.daemon import MyPool
+from util.dataset import load_dataset
 from util.logger import init_logger
 
 
@@ -17,17 +13,6 @@ class Worker:
 
     def __call__(self, x):
         DataPipeline(x, self.destination).process(self.load)
-
-
-def load_dataset():
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-    test_set = torchvision.datasets.CIFAR10(root='../Recasting_ver/data', train=False,
-                                            download=True, transform=transform)
-    return torch.utils.data.DataLoader(test_set, batch_size=64,
-                                       shuffle=False, num_workers=2)
 
 
 def collect_data(destination, num):

@@ -1,18 +1,14 @@
-import os
 import time
 from functools import reduce
 
 import pandas as pd
 import torch
-import torchprof
 from torch.backends import cudnn
 
 from data_pipeline.lenna_net import LennaNet
-from util.latency import get_time
 from util.logger import init_logger
 
 # constant
-from util.outlier import cut_outlier
 
 # TODO: omit zero for summation
 normal_ops = [
@@ -21,6 +17,7 @@ normal_ops = [
     '3x3_dConv', '5x5_dConv',
     '3x3_dConvDW', '5x5_dConvDW',
     '3x3_maxpool', '3x3_avgpool',
+    'Zero',
     'Identity',
 ]
 reduction_ops = [
@@ -67,7 +64,6 @@ class LatencyEstimator:
         self.model.init_arch_params()
 
         # estimate latency of blocks
-        # l_list, l_avg = self.research()
         latency = self.get_latency()
 
         return list(map(
@@ -84,16 +80,15 @@ class LatencyEstimator:
         latency_by_binary_gates = []
         for i in range(reset_times):
             self.model.reset_binary_gates()
-            latency_by_binary_gates.append(self.expect_latency(n_iter=100))
+            latency_by_binary_gates.append(self.one_block_latency(n_iter=100).quantile(q=0.4))
 
         self.logger.info("latency by binary gates: {}".format(latency_by_binary_gates))
 
         return sum(latency_by_binary_gates) / len(latency_by_binary_gates)
 
-    def expect_latency(self, n_iter=100):
+    def one_block_latency(self, n_iter=100):
         """
-            for analysis
-        :return: list of latency and average of latency
+        :return: inner one block
         """
         latency_list = []
         with torch.no_grad():
@@ -106,46 +101,46 @@ class LatencyEstimator:
                 images, labels = data
                 # self.logger.info("outer shape: {}".format(images.shape))
 
-                # time
-                start = time.time()
+                # infer
                 self.model(images.cuda())
-                latency_list.append((time.time() - start) * 1000000)  # sec to micro sec
 
                 count += 1
-                if count % 100 == 0:
+                if count % 10 == 0:
                     self.logger.info("{} times estimation".format(count))
 
-            latency = pd.Series(data=latency_list, name="latency")
-            # filtered = cut_outlier(latency, min_border=0.25, max_border=0.75)
+            latency = pd.Series(data=self.model.blocks[0].latency_list[15], name="latency")
 
-            # describe make time more complex,
-            # self.logger.info("\nlatency: \n{} \nafter filtering: \n{}".format(
-            #     latency.describe(), filtered.describe()
-            # ))
-            # filtered.mean()
-        return latency.quantile(q=0.4)
+        return latency
 
-    def research_get_latency(self, reset_times=10):
+    def outer_total_latency(self, n_iter=100):
         """
-            # TODO: remove outlier per once sampled binary gates
-        :return: average of latency
+        :return: outer latency
         """
-        # df = pd.DataFrame(columns=range(n_binary))
-        l_series = []
-        for i in range(reset_times):
-            self.model.reset_binary_gates()
-            l_list, l_avg = self.expect_latency(n_iter=10)
-            l_series.append(pd.Series(l_list))
+        latency_list = []
+        with torch.no_grad():
+            count = 1
+            l_sum = 0
+            for idx, data in enumerate(self.test_loader):
+                if count > n_iter:
+                    break
 
-        def make_df(x, y):
-            return pd.concat([x, y], axis=1)
+                images, labels = data
+                # self.logger.info("outer shape: {}".format(images.shape))
 
-        df = reduce(make_df, l_series)
-        return df
+                # infer
+                start = time.time()
+                self.model(images.cuda())
+                latency_list.append((time.time() - start) * 1000000)
+
+                count += 1
+                if count % 10 == 0:
+                    self.logger.info("{} times estimation".format(count))
+
+        return pd.Series(latency_list, name="latency")
 
     def research_expect_latency(self, n_iter=70):
         """
-            for analysis
+            inner total, outer total, ops of one block, the block
         :return: list of latency and average of latency
         """
         latency_avg = None
@@ -195,7 +190,9 @@ class LatencyEstimator:
             # for block in self.model.blocks:
             #     self.logger.info("{}".format(block.latency_df))
             outside_df = pd.DataFrame(data=self.model.unit_transform(outside_total_time), columns=["outside_total"])
-            combined_df = pd.concat([self.model.latency_df.rename(columns={0: "inside_total"}), outside_df, self.model.blocks[0].latency_df], axis=1)   # .rename(columns={0: "inside_total", 1: "total"})
+            combined_df = pd.concat([self.model.latency_df.rename(columns={0: "inside_total"}), outside_df,
+                                     self.model.blocks[0].latency_df],
+                                    axis=1)  # .rename(columns={0: "inside_total", 1: "total"})
             from util.outlier import cut_outlier
             cut_df = cut_outlier(combined_df, min_border=0.25, max_border=0.75)
             self.logger.info("\n{}".format(combined_df))
