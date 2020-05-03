@@ -1,3 +1,5 @@
+import pandas as pd
+
 from analysis.binary_gates import accumulate_latency
 from analysis.ops_latency import OpsAnalyzer
 from data_pipeline.latency_estimator import LatencyEstimator
@@ -13,13 +15,16 @@ def research_binary_gates():
 
     cumulative_avg, cumulative_err, cumulative_latency = accumulate_latency(le)
 
-    cumulative_avg.plot()
+    plt.figure()
+    pd.Series(cumulative_avg).plot()
     plt.show()
 
-    cumulative_err.plot()
+    plt.figure()
+    pd.Series(cumulative_err).plot()
     plt.show()
 
-    cumulative_latency.plot()
+    plt.figure()
+    pd.Series(cumulative_latency).plot()
     plt.show()
 
 
