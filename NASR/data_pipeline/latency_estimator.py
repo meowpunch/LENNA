@@ -34,7 +34,7 @@ class LatencyEstimator:
         This class will estimate latency and return latency & arch params
     """
 
-    def __init__(self, block_type, input_channel, num_layers, dataset, parallel=False):
+    def __init__(self, block_type, input_channel, num_layers, sub_pid, dataset, parallel=False):
         self.logger = init_logger()
 
         # dataset
@@ -44,13 +44,15 @@ class LatencyEstimator:
                               block_type=block_type, num_layers=num_layers,
                               input_channel=input_channel, n_classes=10)  # for cifar10
 
-        # move model to GPU if available
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model.to(device)
-        if device == 'cuda':
+        # allocate 4 processes to 4 gpu respectively
+        device = 'cuda:{}'.format(sub_pid) if torch.cuda.is_available() else 'cuda'
+        self.logger.info("assign to {}".format(device))
+
+        self.device = torch.device(device)
+        self.model.to(self.device)
+        if device == 'cuda:{}'.format(sub_pid):
             # self.p_model = torch.nn.DataParallel(module=self.model)
             cudnn.benchmark = True
-
         self.model.eval()
 
     def execute(self):
@@ -69,7 +71,7 @@ class LatencyEstimator:
         self.logger.info("init arch params: {}".format(arch_params))
 
         # estimate latency of blocks
-        latency = self.estimate_latency(max_reset_times=1000)
+        latency = self.estimate_latency(max_reset_times=2)
 
         return arch_params, latency
 
@@ -126,7 +128,7 @@ class LatencyEstimator:
                 # self.logger.info("outer shape: {}".format(images.shape))
 
                 # infer
-                self.model(images.cuda())
+                self.model(images.cuda(self.device))
 
                 count += 1
                 if count % 10 == 0:
@@ -152,7 +154,7 @@ class LatencyEstimator:
 
                 # infer
                 start = time.time()
-                self.model(images.cuda())
+                self.model(images.cuda(self.device))
                 latency_list.append((time.time() - start) * 1000000)
 
                 count += 1
@@ -161,7 +163,7 @@ class LatencyEstimator:
 
         return pd.Series(latency_list, name="latency")
 
-    def research_latency(self, n_iter=70):
+    def various_latency(self, n_iter=70):
         """
             inner total, outer total, ops of one block, the block
         :return: list of latency and average of latency

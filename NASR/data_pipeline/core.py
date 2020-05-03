@@ -8,6 +8,7 @@ from util.logger import init_logger
 class DataPipeline:
     def __init__(self, arg, destination):
         self.logger = init_logger()
+        self.sub_pid = arg
 
         # constant
         self.destination = destination + str(arg)
@@ -22,7 +23,7 @@ class DataPipeline:
             shadow = os.fork()
             latency_list = None
             if shadow == 0:
-                dg = DataGenerator()
+                dg = DataGenerator(sub_pid=self.sub_pid)
                 self.df = dg.process(load=load, num_rows=1)
 
                 self.save_file()

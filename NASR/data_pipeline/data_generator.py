@@ -8,13 +8,14 @@ from util.logger import init_logger
 
 
 class DataGenerator:
-    def __init__(self, g_type="random"):
+    def __init__(self, sub_pid=0, g_type="random"):
         """
             block type: 0 -> reduction , 1-> normal
             input_channel: 1~1000
             num_layers: fix 5 or 6
         """
         self.logger = init_logger()
+        self.sub_pid = sub_pid
 
         # X
         np.random.seed()
@@ -50,6 +51,7 @@ class DataGenerator:
             block_type=self.block_type,
             input_channel=self.input_channel,
             num_layers=self.num_layers,
+            sub_pid=self.sub_pid,
             dataset=load
         )
 

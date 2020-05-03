@@ -27,13 +27,13 @@ def collect_df(destination, num):
     else:
         combined_df.to_csv(destination, mode='a', index=False, header=False)
 
+    # check
+    init_logger().info("final saved df's tail 5: \n{df}".format(df=pd.read_csv(destination).tail(5)))
+
     # delete
     for i in range(num):
         if os.path.exists(destination + str(i)):
             os.remove(destination + str(i))
-
-    # check
-    init_logger().info("final saved df's tail 5: \n{df}".format(df=pd.read_csv(destination).tail(5)))
 
     return 0
 
@@ -57,19 +57,22 @@ def collect_data(destination, num):
             os.remove(destination + str(i))
 
 
-def parallel(destination, p_num=3):
+def parallel(destination, p_num=4):
     logger = init_logger()
     logger.info("director id: %s" % (os.getpid()))
 
+    # generate child process
     with MyPool(p_num) as pool:
         pool.map(Worker(
             load=load_dataset(),
             destination=destination
         ), range(p_num))
 
+    # wait all child proces to work done
     pool.close()
     pool.join()
 
+    # collect data
     collect_df(destination=destination, num=p_num)
     logger.info("success to collect data into '{dest}'".format(dest=destination))
 
