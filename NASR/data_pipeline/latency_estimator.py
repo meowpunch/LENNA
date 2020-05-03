@@ -64,27 +64,48 @@ class LatencyEstimator:
         self.model.init_arch_params()
 
         # estimate latency of blocks
-        latency = self.get_latency()
+        latency = self.estimate_latency(max_reset_times=1000)
 
         return list(map(
             lambda param: torch.Tensor.cpu(param).detach().numpy(),
             self.model.architecture_parameters()
         )), latency
 
-    def get_latency(self, reset_times=3):
+    def estimate_latency(self, max_reset_times=10000):
         """
-            # TODO: remove outlier per once sampled binary gates
+            1. sum the 40% value of the measured latency every 50 resets of the binary gate.
+            2. get avg cumulative latency(sum)
+
         :return: average of latency
         """
-        # df = pd.DataFrame(columns=range(n_binary))
-        latency_by_binary_gates = []
-        for i in range(reset_times):
+        lat_sum, hit_num, pre_avg, cur_avg = 0, 0, 0, 0
+        for i in range(max_reset_times):
             self.model.reset_binary_gates()
-            latency_by_binary_gates.append(self.one_block_latency(n_iter=100).quantile(q=0.4))
 
-        self.logger.info("latency by binary gates: {}".format(latency_by_binary_gates))
+            # the 40% value
+            cur_lat = self.outer_total_latency(n_iter=50).quantile(q=0.4)
+            lat_sum = lat_sum + cur_lat
 
-        return sum(latency_by_binary_gates) / len(latency_by_binary_gates)
+            # average
+            cur_avg = lat_sum / (i + 1)
+
+            # ratio
+            ratio = abs(cur_avg - pre_avg) / cur_avg * 100
+
+            self.logger.info("cumulative_avg, pre_avg: {}, {}".format(cur_avg, pre_avg))
+            self.logger.info("convergence ratio: {}".format(ratio))
+            if ratio < 1 and i >= 50:
+                hit_num = hit_num + 1
+                self.logger.info("reset times, hit counts: {}, {}".format(i, hit_num))
+                if hit_num is 10:
+                    self.logger.info("final latency: {}".format(cur_avg))
+                    break
+            else:
+                hit_num = 0
+
+            pre_avg = cur_avg
+
+        return cur_avg
 
     def one_block_latency(self, n_iter=100):
         """
@@ -138,7 +159,7 @@ class LatencyEstimator:
 
         return pd.Series(latency_list, name="latency")
 
-    def research_expect_latency(self, n_iter=70):
+    def research_latency(self, n_iter=70):
         """
             inner total, outer total, ops of one block, the block
         :return: list of latency and average of latency
