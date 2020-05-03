@@ -19,7 +19,7 @@ class SuperProxylessNASNets(ProxylessNASNets):
 
         input_channel = make_divisible(16 * width_mult, 8)
         first_cell_width = make_divisible(16 * width_mult, 8)
-       
+
         for i in range(len(width_stages)):
             width_stages[i] = make_divisible(width_stages[i] * width_mult, 8)
 
@@ -64,7 +64,7 @@ class SuperProxylessNASNets(ProxylessNASNets):
                 input_channel = width
 
         # feature mix layer
-        last_channel = make_divisible(64 * width_mult, 8) if width_mult > 1.0 else 64 
+        last_channel = make_divisible(64 * width_mult, 8) if width_mult > 1.0 else 64
         feature_mix_layer = ConvLayer(
             input_channel, last_channel, kernel_size=1, use_bn=True, act_func='relu6', ops_order='weight_bn_act',
         )
@@ -311,11 +311,12 @@ class SuperProxylessNASNets(ProxylessNASNets):
     def zero_alpha_step(self, epoch, n_epochs):
         pass
 
+
 class SuperDartsRecastingNet(DartsRecastingNet):
 
     def __init__(self, num_blocks, num_layers, normal_ops, reduction_ops,
-                mixedge_ver = 2, threshold = 0.5, 
-                increase_option = False, increase_term = 10,
+                 mixedge_ver=2, threshold=0.5,
+                 increase_option=False, increase_term=10,
                  n_classes=1000, bn_param=(0.1, 1e-3), dropout_rate=0):
         self._redundant_modules = None
         self._unused_modules = None
@@ -342,27 +343,28 @@ class SuperDartsRecastingNet(DartsRecastingNet):
         output_channel = input_channel
         for i, nb in enumerate(num_blocks):
             input_channel = output_channel
-            
-            if i == 0 :  # First block (keep dimension)
-                edges, fsize = self.build_normal_layers(normal_ops, input_channel, output_channel, self.num_layers, f) 
+
+            if i == 0:  # First block (keep dimension)
+                edges, fsize = self.build_normal_layers(normal_ops, input_channel, output_channel, self.num_layers, f)
                 b = DartsRecastingBlock(edges)
                 blocks += [b]
-                self.fsize +=[fsize]
-            else :       # Reduction blocks
+                self.fsize += [fsize]
+            else:  # Reduction blocks
                 output_channel = input_channel * 2
-                edges, fsize= self.build_reduction_layers(reduction_ops, normal_ops, input_channel, output_channel, self.num_layers, f) 
+                edges, fsize = self.build_reduction_layers(reduction_ops, normal_ops, input_channel, output_channel,
+                                                           self.num_layers, f)
                 b = DartsRecastingBlock(edges)
                 blocks += [b]
-                self.fsize +=[fsize]
+                self.fsize += [fsize]
                 f //= 2
 
-            for _ in range(nb-1): # Normal blocks
+            for _ in range(nb - 1):  # Normal blocks
                 fsize_list.append(f)
-                edges, fsize = self.build_normal_layers(normal_ops, output_channel, output_channel, self.num_layers, f) 
+                edges, fsize = self.build_normal_layers(normal_ops, output_channel, output_channel, self.num_layers, f)
                 b = DartsRecastingBlock(edges)
                 blocks += [b]
-                self.fsize +=[fsize]
-        
+                self.fsize += [fsize]
+
         classifier = LinearLayer(output_channel, n_classes, dropout_rate=dropout_rate)
         self.fsize.append(f)
         super(SuperDartsRecastingNet, self).__init__(first_conv, blocks, classifier)
@@ -441,14 +443,14 @@ class SuperDartsRecastingNet(DartsRecastingNet):
                 if child is None:
                     continue
                 if child.__str__().startswith('MixedEdge_v2'):
-                    if self.increase_option == 1 :
-                        if epoch > n_epochs/2:
+                    if self.increase_option == 1:
+                        if epoch > n_epochs / 2:
                             module._modules[m].compute_zero()
-                        if epoch > n_epochs/2 and epoch % self.increase_term == 0:
+                        if epoch > n_epochs / 2 and epoch % self.increase_term == 0:
                             module._modules[m].increase_sigmoid_alpha()
-                        if epoch > n_epochs/8*7 :
+                        if epoch > n_epochs / 8 * 7:
                             module._modules[m].set_hard_zero()
-                    elif self.increase_option == 2 :
+                    elif self.increase_option == 2:
                         module._modules[m].increase_sigmoid_alpha_cont(0.05)
                 else:
                     queue.put(child)
@@ -469,6 +471,7 @@ class SuperDartsRecastingNet(DartsRecastingNet):
                     queue.put(child)
 
     """ architecture parameters related methods """
+
     def build_normal_layers(self, candidate_ops, input_channel, out_channel, num_layers, f):
         layer_list = []
         f_list = []
@@ -476,26 +479,26 @@ class SuperDartsRecastingNet(DartsRecastingNet):
             layer = []
             f_sub_list = []
             for _ in range(num_edges + 1):
-                if self.mixedge_ver == 1 :
+                if self.mixedge_ver == 1:
                     edge = MixedEdge(candidate_ops=build_candidate_ops(candidate_ops,
-                                                                    input_channel, 
-                                                                    out_channel, 
-                                                                    1, 
-                                                                    'weight_bn_act'))
-                elif self.mixedge_ver == 2 :
+                                                                       input_channel,
+                                                                       out_channel,
+                                                                       1,
+                                                                       'weight_bn_act'))
+                elif self.mixedge_ver == 2:
                     edge = MixedEdge_v2(candidate_ops=build_candidate_ops(candidate_ops,
-                                                                    input_channel, 
-                                                                    out_channel, 
-                                                                    1, 
-                                                                    'weight_bn_act'),
+                                                                          input_channel,
+                                                                          out_channel,
+                                                                          1,
+                                                                          'weight_bn_act'),
                                         threshold=self.threshold)
-                else :
+                else:
                     raise NotImplementedError
 
                 layer += [edge]
-                f_sub_list +=[f]
+                f_sub_list += [f]
             layer_list += [nn.ModuleList(layer)]
-            f_list +=[f_sub_list]
+            f_list += [f_sub_list]
 
         return layer_list, f_list
 
@@ -506,33 +509,33 @@ class SuperDartsRecastingNet(DartsRecastingNet):
             layer = []
             f_sub_list = []
             for edge_idx in range(num_edges + 1):
-                if edge_idx == 0 :
+                if edge_idx == 0:
                     ops = reduction_ops
                     in_C = input_channel
                     out_C = out_channel
                     S = 2
                     f_sub_list += [f]
-                else :
-                    ops = normal_ops 
-                    in_C = out_channel 
+                else:
+                    ops = normal_ops
+                    in_C = out_channel
                     out_C = out_channel
                     S = 1
-                    f_sub_list +=[f//2]
+                    f_sub_list += [f // 2]
 
-                if self.mixedge_ver == 1 :
+                if self.mixedge_ver == 1:
                     edge = MixedEdge(candidate_ops=build_candidate_ops(ops,
-                                                                       in_C, 
-                                                                       out_C, 
-                                                                       S, 
+                                                                       in_C,
+                                                                       out_C,
+                                                                       S,
                                                                        'weight_bn_act'))
-                elif self.mixedge_ver == 2 :
+                elif self.mixedge_ver == 2:
                     edge = MixedEdge_v2(candidate_ops=build_candidate_ops(ops,
-                                                                       in_C, 
-                                                                       out_C, 
-                                                                       S, 
-                                                                       'weight_bn_act'),
+                                                                          in_C,
+                                                                          out_C,
+                                                                          S,
+                                                                          'weight_bn_act'),
                                         threshold=self.threshold)
-                else :
+                else:
                     raise NotImplementedError
 
                 layer += [edge]
@@ -638,7 +641,7 @@ class SuperDartsRecastingNet(DartsRecastingNet):
 
         for i in range(len(self.blocks)):
             block = self.blocks[i]
-            latency += block.get_latency(self.fsize[i+1], latency_model)
+            latency += block.get_latency(self.fsize[i + 1], latency_model)
 
         return latency
 
@@ -647,7 +650,7 @@ class SuperDartsRecastingNet(DartsRecastingNet):
 
         for i in block_idx:
             block = self.blocks[i]
-            expected_latency += block.expected_latency(self.fsize[i+1], latency_model)
+            expected_latency += block.expected_latency(self.fsize[i + 1], latency_model)
 
         return expected_latency
 
@@ -657,10 +660,10 @@ class SuperDartsRecastingNet(DartsRecastingNet):
         _, x = self.first_conv.get_flops(x)
 
         for i in range(len(self.blocks)):
-            if i in block_idx :
+            if i in block_idx:
                 flops, x = self.blocks[i].get_flops(x)
                 expected_flops += flops
-            else :
+            else:
                 _, x = self.blocks[i].get_flops(x)
 
         return expected_flops
@@ -724,9 +727,9 @@ class SuperDartsRecastingNet(DartsRecastingNet):
                     if not isinstance(ll[j], ZeroLayer):
                         remove = False
                         break
-                if remove is True :
-                    for ii in range(i+1, len(l_list)):
-                        l_list[ii][i+1] = ZeroLayer()
+                if remove is True:
+                    for ii in range(i + 1, len(l_list)):
+                        l_list[ii][i + 1] = ZeroLayer()
 
             # backward removal
 
@@ -737,13 +740,14 @@ class SuperDartsRecastingNet(DartsRecastingNet):
                 remove = True
                 for i in reversed(range(n_rows)):
                     ll = l_list[i]
-                    if j < len(ll) and isinstance(ll[j], ZeroLayer) is False :
+                    if j < len(ll) and isinstance(ll[j], ZeroLayer) is False:
                         remove = False
                         break
 
                 if remove is True:
-                    for ii in range(len(l_list[j-1])):
-                        l_list[j-1][ii] = ZeroLayer()
+                    for ii in range(len(l_list[j - 1])):
+                        l_list[j - 1][ii] = ZeroLayer()
+
 
 class ResRecastingNet(DartsRecastingNet):
 
@@ -766,19 +770,20 @@ class ResRecastingNet(DartsRecastingNet):
         output_channel = input_channel
         for i, nb in enumerate(num_blocks):
             input_channel = output_channel
-            
-            if i == 0 :  # First block (keep dimension)
-                edges = self.build_normal_layers(normal_ops, input_channel, output_channel, self.num_layers) 
+
+            if i == 0:  # First block (keep dimension)
+                edges = self.build_normal_layers(normal_ops, input_channel, output_channel, self.num_layers)
                 b = DartsRecastingBlock(edges)
                 blocks += [b]
-            else :       # Reduction blocks
+            else:  # Reduction blocks
                 output_channel = input_channel * 2
-                edges = self.build_reduction_layers(reduction_ops, normal_ops, input_channel, output_channel, self.num_layers) 
+                edges = self.build_reduction_layers(reduction_ops, normal_ops, input_channel, output_channel,
+                                                    self.num_layers)
                 b = DartsRecastingBlock(edges)
                 blocks += [b]
 
-            for _ in range(nb-1): # Normal blocks
-                edges = self.build_normal_layers(normal_ops, output_channel, output_channel, self.num_layers) 
+            for _ in range(nb - 1):  # Normal blocks
+                edges = self.build_normal_layers(normal_ops, output_channel, output_channel, self.num_layers)
                 b = DartsRecastingBlock(edges)
                 blocks += [b]
 
@@ -814,17 +819,18 @@ class ResRecastingNet(DartsRecastingNet):
                 yield param
 
     """ architecture parameters related methods """
+
     def build_normal_layers(self, candidate_ops, input_channel, out_channel, num_layers):
         layer_list = []
         for num_edges in range(num_layers):
             layer = []
             for _ in range(num_edges + 1):
                 edge = MixedEdge(candidate_ops=build_candidate_ops(candidate_ops,
-                                                                    input_channel, 
-                                                                    out_channel, 
-                                                                    1, 
-                                                                    'weight_bn_act'),
-                                )
+                                                                   input_channel,
+                                                                   out_channel,
+                                                                   1,
+                                                                   'weight_bn_act'),
+                                 )
 
                 layer += [edge]
             layer_list += [nn.ModuleList(layer)]
@@ -836,23 +842,23 @@ class ResRecastingNet(DartsRecastingNet):
         for num_edges in range(num_layers):
             layer = []
             for edge_idx in range(num_edges + 1):
-                if edge_idx == 0 :
+                if edge_idx == 0:
                     ops = reduction_ops
                     in_C = input_channel
                     out_C = out_channel
                     S = 2
-                else :
-                    ops = normal_ops 
-                    in_C = out_channel 
+                else:
+                    ops = normal_ops
+                    in_C = out_channel
                     out_C = out_channel
                     S = 1
 
                 edge = MixedEdge(candidate_ops=build_candidate_ops(ops,
-                                                                   in_C, 
-                                                                   out_C, 
-                                                                   S, 
+                                                                   in_C,
+                                                                   out_C,
+                                                                   S,
                                                                    'weight_bn_act'),
-                                )
+                                 )
 
                 layer += [edge]
             layer_list += [nn.ModuleList(layer)]
@@ -953,37 +959,37 @@ class ResRecastingNet(DartsRecastingNet):
         )
         # blocks
         fsize = 112
-#        for block in self.blocks:
-#            shortcut = block.shortcut
-#            if shortcut is None or shortcut.is_zero_layer():
-#                idskip = 0
-#            else:
-#                idskip = 1
-#
-#            mb_conv = block.mobile_inverted_conv
-#            if not isinstance(mb_conv, MixedEdge):
-#                if not mb_conv.is_zero_layer():
-#                    out_fz = fsize // mb_conv.stride
-#                    op_latency = latency_model.predict(
-#                        'expanded_conv', [fsize, fsize, mb_conv.in_channels], [out_fz, out_fz, mb_conv.out_channels],
-#                        expand=mb_conv.expand_ratio, kernel=mb_conv.kernel_size, stride=mb_conv.stride, idskip=idskip
-#                    )
-#                    expected_latency = expected_latency + op_latency
-#                    fsize = out_fz
-#                continue
-#
-#            probs_over_ops = mb_conv.current_prob_over_ops
-#            out_fsize = fsize
-#            for i, op in enumerate(mb_conv.candidate_ops):
-#                if op is None or op.is_zero_layer():
-#                    continue
-#                out_fsize = fsize // op.stride
-#                op_latency = latency_model.predict(
-#                    'expanded_conv', [fsize, fsize, op.in_channels], [out_fsize, out_fsize, op.out_channels],
-#                    expand=op.expand_ratio, kernel=op.kernel_size, stride=op.stride, idskip=idskip
-#                )
-#                expected_latency = expected_latency + op_latency * probs_over_ops[i]
-#            fsize = out_fsize
+        #        for block in self.blocks:
+        #            shortcut = block.shortcut
+        #            if shortcut is None or shortcut.is_zero_layer():
+        #                idskip = 0
+        #            else:
+        #                idskip = 1
+        #
+        #            mb_conv = block.mobile_inverted_conv
+        #            if not isinstance(mb_conv, MixedEdge):
+        #                if not mb_conv.is_zero_layer():
+        #                    out_fz = fsize // mb_conv.stride
+        #                    op_latency = latency_model.predict(
+        #                        'expanded_conv', [fsize, fsize, mb_conv.in_channels], [out_fz, out_fz, mb_conv.out_channels],
+        #                        expand=mb_conv.expand_ratio, kernel=mb_conv.kernel_size, stride=mb_conv.stride, idskip=idskip
+        #                    )
+        #                    expected_latency = expected_latency + op_latency
+        #                    fsize = out_fz
+        #                continue
+        #
+        #            probs_over_ops = mb_conv.current_prob_over_ops
+        #            out_fsize = fsize
+        #            for i, op in enumerate(mb_conv.candidate_ops):
+        #                if op is None or op.is_zero_layer():
+        #                    continue
+        #                out_fsize = fsize // op.stride
+        #                op_latency = latency_model.predict(
+        #                    'expanded_conv', [fsize, fsize, op.in_channels], [out_fsize, out_fsize, op.out_channels],
+        #                    expand=op.expand_ratio, kernel=op.kernel_size, stride=op.stride, idskip=idskip
+        #                )
+        #                expected_latency = expected_latency + op_latency * probs_over_ops[i]
+        #            fsize = out_fsize
         return expected_latency
 
     def expected_flops(self, x):
@@ -992,26 +998,26 @@ class ResRecastingNet(DartsRecastingNet):
         flop, x = self.first_conv.get_flops(x)
         expected_flops += flop
         # blocks
-#        for block in self.blocks:
-#            mb_conv = block.mobile_inverted_conv
-#            if not isinstance(mb_conv, MixedEdge):
-#                delta_flop, x = block.get_flops(x)
-#                expected_flops = expected_flops + delta_flop
-#                continue
-#
-#            if block.shortcut is None:
-#                shortcut_flop = 0
-#            else:
-#                shortcut_flop, _ = block.shortcut.get_flops(x)
-#            expected_flops = expected_flops + shortcut_flop
-#
-#            probs_over_ops = mb_conv.current_prob_over_ops
-#            for i, op in enumerate(mb_conv.candidate_ops):
-#                if op is None or op.is_zero_layer():
-#                    continue
-#                op_flops, _ = op.get_flops(x)
-#                expected_flops = expected_flops + op_flops * probs_over_ops[i]
-#            x = block(x)
+        #        for block in self.blocks:
+        #            mb_conv = block.mobile_inverted_conv
+        #            if not isinstance(mb_conv, MixedEdge):
+        #                delta_flop, x = block.get_flops(x)
+        #                expected_flops = expected_flops + delta_flop
+        #                continue
+        #
+        #            if block.shortcut is None:
+        #                shortcut_flop = 0
+        #            else:
+        #                shortcut_flop, _ = block.shortcut.get_flops(x)
+        #            expected_flops = expected_flops + shortcut_flop
+        #
+        #            probs_over_ops = mb_conv.current_prob_over_ops
+        #            for i, op in enumerate(mb_conv.candidate_ops):
+        #                if op is None or op.is_zero_layer():
+        #                    continue
+        #                op_flops, _ = op.get_flops(x)
+        #                expected_flops = expected_flops + op_flops * probs_over_ops[i]
+        #            x = block(x)
         # feature mix layer
         delta_flop, x = self.feature_mix_layer.get_flops(x)
         expected_flops = expected_flops + delta_flop

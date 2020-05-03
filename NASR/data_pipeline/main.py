@@ -1,5 +1,7 @@
 import os
 
+import pandas as pd
+
 from data_pipeline.core import DataPipeline
 from util.daemon import MyPool
 from util.dataset import load_dataset
@@ -13,6 +15,27 @@ class Worker:
 
     def __call__(self, x):
         DataPipeline(x, self.destination).process(self.load)
+
+
+def collect_df(destination, num):
+    # collect df from csv files
+    combined_df = pd.concat([pd.read_csv(destination + str(i)) for i in range(num)], axis=0)
+
+    # save
+    if os.path.isfile(destination) is True:
+        combined_df.to_csv(destination, mode='w', index=False, header=True)
+    else:
+        combined_df.to_csv(destination, mode='a', index=False, header=False)
+
+    # delete
+    for i in range(num):
+        if os.path.exists(destination + str(i)):
+            os.remove(destination + str(i))
+
+    # check
+    init_logger().info("final saved df's tail 5: \n{df}".format(df=pd.read_csv(destination).tail(5)))
+
+    return 0
 
 
 def collect_data(destination, num):
@@ -34,11 +57,9 @@ def collect_data(destination, num):
             os.remove(destination + str(i))
 
 
-def parallel(destination):
+def parallel(destination, p_num=3):
     logger = init_logger()
     logger.info("director id: %s" % (os.getpid()))
-
-    p_num = 3
 
     with MyPool(p_num) as pool:
         pool.map(Worker(
@@ -49,21 +70,21 @@ def parallel(destination):
     pool.close()
     pool.join()
 
-    collect_data(destination=destination, num=p_num)
+    collect_df(destination=destination, num=p_num)
     logger.info("success to collect data into '{dest}'".format(dest=destination))
 
 
 def single(destination):
-    DataPipeline(0, destination).process(load_dataset(), arg=True)
+    DataPipeline(0, destination).process(load_dataset())
 
 
 def main(arg="parallel"):
     destination = "training_data/data"
     if arg is "parallel":
-        parallel(destination=destination)
+        parallel(destination=destination, p_num=4)
     else:
         single(destination=destination)
 
 
 if __name__ == '__main__':
-    main("single")
+    main("parallel")

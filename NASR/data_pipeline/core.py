@@ -14,29 +14,35 @@ class DataPipeline:
 
         self.df = None
 
-    def process(self, load, arg=True):
+    def process(self, load, shadow=True):
         """
             TODO: not produce shadow process.
         """
-        shadow = os.fork()
-        latency_list = None
-        if shadow == 0:
-            dg = DataGenerator()
-            self.df = dg.process(load=load, num_rows=3)
+        if shadow:
+            shadow = os.fork()
+            latency_list = None
+            if shadow == 0:
+                dg = DataGenerator()
+                self.df = dg.process(load=load, num_rows=1)
 
-            self.save_file()
-            sys.exit()
+                self.save_file()
+                sys.exit()
+            else:
+                self.logger.info("%s worker got shadow %s" % (os.getpid(), shadow))
+
+            pid, status = os.waitpid(shadow, 0)
+            self.logger.info("wait returned, pid = %d, status = %d" % (pid, status))
+            return 0
         else:
-            self.logger.info("%s worker got shadow %s" % (os.getpid(), shadow))
-
-        pid, status = os.waitpid(shadow, 0)
-        self.logger.info("wait returned, pid = %d, status = %d" % (pid, status))
-        return 0
+            dg = DataGenerator()
+            self.df = dg.process(load=load, num_rows=1)
+            self.save_file()
+            return 0
 
     def save_file(self):
         if os.path.isfile(self.destination) is True:
-            self.df.to_csv(self.destination, mode='w', header=True)
+            self.df.to_csv(self.destination, mode='w', index=False, header=True)
         else:
-            self.df.to_csv(self.destination, mode='a', header=False)
+            self.df.to_csv(self.destination, mode='a', index=False, header=False)
 
         self.logger.info("success to save data in '{dest}'".format(dest=self.destination))

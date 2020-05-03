@@ -15,7 +15,7 @@ def build_candidate_ops(candidate_ops, in_channels, out_channels, stride, ops_or
         raise ValueError('please specify a candidate set')
 
     name2ops = {
-        #'Identity': lambda in_C, out_C, S: IdentityLayer(in_C, out_C, ops_order=ops_order),
+        # 'Identity': lambda in_C, out_C, S: IdentityLayer(in_C, out_C, ops_order=ops_order),
         'Identity': lambda in_C, out_C, S: MyIdentity(),
         'Zero': lambda in_C, out_C, S: ZeroLayer(stride=S),
     }
@@ -25,7 +25,7 @@ def build_candidate_ops(candidate_ops, in_channels, out_channels, stride, ops_or
         '3x3_Conv': lambda in_C, out_C, S: ConvLayer(in_C, out_C, 3, S, 1),
         '5x5_Conv': lambda in_C, out_C, S: ConvLayer(in_C, out_C, 5, S, 1),
         #######################################################################################
-        '3x3_ConvDW': lambda in_C, out_C, S: DepthConvLayer(in_C, out_C, 3, S, 1), 
+        '3x3_ConvDW': lambda in_C, out_C, S: DepthConvLayer(in_C, out_C, 3, S, 1),
         '5x5_ConvDW': lambda in_C, out_C, S: DepthConvLayer(in_C, out_C, 5, S, 1),
         #######################################################################################
         '3x3_dConv': lambda in_C, out_C, S: ConvLayer(in_C, out_C, 3, S, 2),
@@ -68,7 +68,8 @@ def build_candidate_ops(candidate_ops, in_channels, out_channels, stride, ops_or
 
 class MixedEdge(MyModule):
     MODE = None  # full, two, None, full_v2
-    #MODE = 'full_v2'
+
+    # MODE = 'full_v2'
 
     def __init__(self, candidate_ops):
         super(MixedEdge, self).__init__()
@@ -149,6 +150,7 @@ class MixedEdge(MyModule):
             def run_function(candidate_ops, active_id):
                 def forward(_x):
                     return candidate_ops[active_id](_x)
+
                 return forward
 
             def backward_function(candidate_ops, active_id, binary_gates):
@@ -163,7 +165,9 @@ class MixedEdge(MyModule):
                             grad_k = torch.sum(out_k * grad_output)
                             binary_grads[k] = grad_k
                     return binary_grads
+
                 return backward
+
             output = ArchGradientFunction.apply(
                 x, self.AP_path_wb, run_function(self.candidate_ops, self.active_index[0]),
                 backward_function(self.candidate_ops, self.active_index[0], self.AP_path_wb)
@@ -239,12 +243,12 @@ class MixedEdge(MyModule):
                 param.grad = None
 
     def set_arch_param_grad(self):
-        if self.AP_path_wb.grad is None :
-            return 
+        if self.AP_path_wb.grad is None:
+            return
         binary_grads = self.AP_path_wb.grad.data
-#        if self.active_op.is_zero_layer() or isinstance(self.active_op, MyIdentity):
-#            self.AP_path_alpha.grad = None
-#            return
+        #        if self.active_op.is_zero_layer() or isinstance(self.active_op, MyIdentity):
+        #            self.AP_path_alpha.grad = None
+        #            return
         if self.AP_path_alpha.grad is None:
             self.AP_path_alpha.grad = torch.zeros_like(self.AP_path_alpha.data)
         if MixedEdge.MODE == 'two':
@@ -284,16 +288,18 @@ class MixedEdge(MyModule):
         for idx in involved_idx:
             self.AP_path_alpha.data[idx] -= offset
 
+
 class MixedEdge_v2(MyModule):
     MODE = None  # full, two, None, full_v2
-    #MODE = 'full_v2'
 
-    def __init__(self, candidate_ops, threshold = 0.5):
+    # MODE = 'full_v2'
+
+    def __init__(self, candidate_ops, threshold=0.5):
         super(MixedEdge_v2, self).__init__()
 
         self.zero = None
         for x in candidate_ops:
-            if isinstance(x, ZeroLayer) :
+            if isinstance(x, ZeroLayer):
                 self.zero = x
                 candidate_ops.remove(x)
 
@@ -325,17 +331,17 @@ class MixedEdge_v2(MyModule):
 
     @property
     def prob_zero(self):
-        if self.hard_zero is False :
+        if self.hard_zero is False:
             prob = torch.sigmoid(self.sigmoid_alpha * self.AP_zero_alpha)
-        else :
-#            if self.AP_zero_alpha.data >= 0 :
-#                prob = 1.0
-#            else :
-#                prob = 0.0
+        else:
+            #            if self.AP_zero_alpha.data >= 0 :
+            #                prob = 1.0
+            #            else :
+            #                prob = 0.0
             temp_p = torch.sigmoid(self.sigmoid_alpha * self.AP_zero_alpha)
-            if temp_p >= self.threshold :
+            if temp_p >= self.threshold:
                 prob = 1.0
-            else :
+            else:
                 prob = 0.0
         return prob
 
@@ -350,7 +356,7 @@ class MixedEdge_v2(MyModule):
         index, _ = self.chosen_index
         if self.AP_zero_alpha.data >= 0 or self.zero is None:
             return self.candidate_ops[index]
-        else :
+        else:
             return self.zero
 
     @property
@@ -366,7 +372,7 @@ class MixedEdge_v2(MyModule):
 
     def is_zero_layer(self):
         return self.AP_zero_wb.data
-   
+
     def reset_sigmoid_alpha(self):
         self.sigmoid_alpha = 1
 
@@ -377,21 +383,21 @@ class MixedEdge_v2(MyModule):
         self.hard_zero = False
 
     def reset_skip_zero(self):
-        if self.zero is not None :
+        if self.zero is not None:
             self.skip_zero = True
 
     def increase_sigmoid_alpha(self):
-        self.sigmoid_alpha *= 2 
+        self.sigmoid_alpha *= 2
 
     def increase_sigmoid_alpha_cont(self, coeff):
-        self.sigmoid_alpha *= 2**coeff 
+        self.sigmoid_alpha *= 2 ** coeff
 
     def compute_zero(self):
-        if self.zero is not None :
+        if self.zero is not None:
             self.skip_zero = False
 
     def set_hard_zero(self):
-        if self.zero is not None :
+        if self.zero is not None:
             self.hard_zero = True
 
     def get_active_alpha(self):
@@ -431,6 +437,7 @@ class MixedEdge_v2(MyModule):
             def run_function(candidate_ops, active_id):
                 def forward(_x):
                     return candidate_ops[active_id](_x)
+
                 return forward
 
             def backward_function(candidate_ops, active_id, binary_gates):
@@ -445,7 +452,9 @@ class MixedEdge_v2(MyModule):
                             grad_k = torch.sum(out_k * grad_output)
                             binary_grads[k] = grad_k
                     return binary_grads
+
                 return backward
+
             output = ArchGradientFunction.apply(
                 x, self.AP_path_wb, run_function(self.candidate_ops, self.active_index[0]),
                 backward_function(self.candidate_ops, self.active_index[0], self.AP_path_wb)
@@ -453,11 +462,11 @@ class MixedEdge_v2(MyModule):
         else:
             output = self.active_op(x)
 
-        if self.zero is None :
+        if self.zero is None:
             output = 1 * output
         elif self.zero is not None and self.skip_zero is False:
             output = self.prob_zero * output
-        else :
+        else:
             output = 0.5 * output
 
         return output
@@ -465,7 +474,8 @@ class MixedEdge_v2(MyModule):
     @property
     def module_str(self):
         chosen_index, probs = self.chosen_index
-        return 'Mix_v2(%s, %.3f, Connected, %.3f)' % (self.candidate_ops[chosen_index].module_str, probs, self.prob_zero)
+        return 'Mix_v2(%s, %.3f, Connected, %.3f)' % (
+        self.candidate_ops[chosen_index].module_str, probs, self.prob_zero)
 
     @property
     def arch_params(self):
@@ -497,7 +507,7 @@ class MixedEdge_v2(MyModule):
         self.AP_path_wb.data.zero_()
         # binarize according to probs
         probs = self.probs_over_ops
-        if len(self.candidate_ops) <= 1 :
+        if len(self.candidate_ops) <= 1:
             sample = 0
             self.active_index = [sample]
             self.inactive_index = []
@@ -537,8 +547,8 @@ class MixedEdge_v2(MyModule):
                 param.grad = None
 
     def set_arch_param_grad(self):
-        if self.AP_path_wb.grad is None :
-            return 
+        if self.AP_path_wb.grad is None:
+            return
         binary_grads = self.AP_path_wb.grad.data
         if isinstance(self.active_op, MyIdentity):
             self.AP_path_alpha.grad = None
@@ -585,32 +595,33 @@ class MixedEdge_v2(MyModule):
     def expected_latency(self, fsize, latency_model):
 
         latency = 0
-        if self.prob_zero == 0 :
-            return latency 
-        
-        for op, p in zip(self.candidate_ops, self.probs_over_ops) :
+        if self.prob_zero == 0:
+            return latency
+
+        for op, p in zip(self.candidate_ops, self.probs_over_ops):
             if isinstance(op, MyIdentity):
                 continue
-            else :
+            else:
                 config = op.config
-                name = op.module_str 
+                name = op.module_str
                 stride = config['stride']
                 in_channels = op.in_channels
                 out_channels = op.out_channels
 
-                latency += p * latency_model.predict(name, fsize, stride, in_channels, out_channels) 
-        
-        return latency 
+                latency += p * latency_model.predict(name, fsize, stride, in_channels, out_channels)
+
+        return latency
 
     def get_latency(self, fsize, latency_model):
         latency = 0
 
-        if self.prob_zero == 0 :
-            return latency 
-        
+        if self.prob_zero == 0:
+            return latency
+
         for i in self.active_index:
             latency += self.candidate_ops[i].get_latency(fsize, latency_model)
-        return latency 
+        return latency
+
 
 class ArchGradientFunction(torch.autograd.Function):
 
@@ -634,4 +645,3 @@ class ArchGradientFunction(torch.autograd.Function):
         binary_grads = ctx.backward_func(detached_x.data, output.data, grad_output.data)
 
         return grad_x[0], binary_grads, None, None
-
