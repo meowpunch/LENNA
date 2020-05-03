@@ -35,14 +35,8 @@ class DataPipeline:
 
     def save_file(self):
         if os.path.isfile(self.destination) is True:
-            f = open(self.destination, "a")
+            self.df.to_csv(self.destination, mode='w', header=True)
         else:
-            f = open(self.destination, "w")
-
-        f.writelines(' '.join(list(map(lambda x: str(x), self.X))))
-        f.write(', ')
-        f.write(str(self.y))
-        f.write('\n')
-        f.close()
+            self.df.to_csv(self.destination, mode='a', header=False)
 
         self.logger.info("success to save data in '{dest}'".format(dest=self.destination))

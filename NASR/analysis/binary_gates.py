@@ -36,7 +36,7 @@ def accumulate_latency(le, max_reset_times=100):
         le.logger.info("cumulative_avg, pre_avg: {}, {}".format(avg_history[-1], avg_history[-2]))
         le.logger.info("convergence ratio: {}".format(ratio))
 
-        if ratio < 1 and i >= 50:
+        if ratio < 1 and i >= 10:
             hit_count = hit_count + 1
             le.logger.info("reset times, hit counts: {}, {}".format(i, hit_count))
             if hit_count is 10:
