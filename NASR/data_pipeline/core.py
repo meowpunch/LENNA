@@ -12,8 +12,7 @@ class DataPipeline:
         # constant
         self.destination = destination + str(arg)
 
-        self.X = None
-        self.y = None
+        self.df = None
 
     def process(self, load, arg=True):
         """
@@ -23,11 +22,7 @@ class DataPipeline:
         latency_list = None
         if shadow == 0:
             dg = DataGenerator()
-            self.X, self.y = dg.process(load)
-            # print(latency_list)
-            self.logger.info("X: {X}, y: {y}".format(
-                X=self.X, y=self.y
-            ))
+            self.df = dg.process(load=load, num_rows=3)
 
             self.save_file()
             sys.exit()

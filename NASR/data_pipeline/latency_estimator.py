@@ -62,29 +62,34 @@ class LatencyEstimator:
         """
         # init architecture parameters by uniform distribution
         self.model.init_arch_params()
+        arch_params = list(map(
+            lambda param: torch.Tensor.cpu(param).detach().numpy(),
+            self.model.architecture_parameters()
+        ))
+        self.logger.info("init arch params: {}".format(arch_params))
 
         # estimate latency of blocks
         latency = self.estimate_latency(max_reset_times=1000)
 
-        return list(map(
-            lambda param: torch.Tensor.cpu(param).detach().numpy(),
-            self.model.architecture_parameters()
-        )), latency
+        return arch_params, latency
 
     def estimate_latency(self, max_reset_times=10000):
         """
             1. sum the 40% value of the measured latency every 50 resets of the binary gate.
             2. get avg cumulative latency(sum)
-
-        :return: average of latency
+            3. ratio of error and avg
+            4. if the ratio is less than 1 continuously 10 times, break the loop
+        :return: latency
         """
         lat_sum, hit_num, pre_avg, cur_avg = 0, 0, 0, 0
         for i in range(max_reset_times):
             self.model.reset_binary_gates()
+            self.logger.info("**{} times reset binary gate**".format(i))
 
             # the 40% value
-            cur_lat = self.outer_total_latency(n_iter=50).quantile(q=0.4)
-            lat_sum = lat_sum + cur_lat
+            new_lat = self.outer_total_latency(n_iter=50).quantile(q=0.4)
+            self.logger.info("newly estimated latency: {}".format(new_lat))
+            lat_sum = lat_sum + new_lat
 
             # average
             cur_avg = lat_sum / (i + 1)
@@ -111,10 +116,8 @@ class LatencyEstimator:
         """
         :return: inner one block
         """
-        latency_list = []
         with torch.no_grad():
             count = 1
-            l_sum = 0
             for idx, data in enumerate(self.test_loader):
                 if count > n_iter:
                     break
@@ -140,7 +143,6 @@ class LatencyEstimator:
         latency_list = []
         with torch.no_grad():
             count = 1
-            l_sum = 0
             for idx, data in enumerate(self.test_loader):
                 if count > n_iter:
                     break

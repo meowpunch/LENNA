@@ -1,13 +1,14 @@
 from functools import reduce
 
 import numpy as np
+import pandas as pd
 
 from data_pipeline.latency_estimator import LatencyEstimator
 from util.logger import init_logger
 
 
 class DataGenerator:
-    def __init__(self):
+    def __init__(self, g_type="random"):
         """
             block type: 0 -> reduction , 1-> normal
             input_channel: 1~1000
@@ -22,21 +23,25 @@ class DataGenerator:
         self.num_layers = 5
         self.arch_params = None
 
-        self.logger.info("init b_type: {}, in_ch: {} ".format(
+        self.logger.info("init b_type, in_ch: {}, {} ".format(
             self.block_type, self.input_channel
         ))
 
         # y
         self.latency = None
 
+    @property
     def serialize_x(self):
-        return np.append(np.array([
-            self.block_type, self.input_channel,  # self.num_layers,
-        ]), reduce(
-            lambda a, b: np.append(a, b), self.arch_params
-        ))
+        if self.arch_params is None:
+            raise NotImplementedError
+        else:
+            return np.append(np.array([
+                self.block_type, self.input_channel,  # self.num_layers,
+            ]), reduce(
+                lambda a, b: np.append(a, b), self.arch_params
+            ))
 
-    def process(self, load):
+    def process(self, load, num_rows=100):
         """
         return: X, y, latency_list
         """
@@ -47,6 +52,12 @@ class DataGenerator:
             num_layers=self.num_layers,
             dataset=load
         )
-        self.arch_params, self.latency = le.execute()
 
-        return self.serialize_x(), self.latency
+        def one_row(x):
+            self.arch_params, self.latency = le.execute()
+            return np.append(self.serialize_x, self.latency)
+
+        df = pd.DataFrame(map(one_row, range(num_rows)))
+        self.logger.info("show 5 rows\n {}".format(df.head(5)))
+
+        return df
