@@ -3,9 +3,11 @@ from functools import reduce
 
 import pandas as pd
 import torch
+import torchprof
 from torch.backends import cudnn
 
 from data_pipeline.lenna_net import LennaNet
+from util.latency import get_time
 from util.logger import init_logger
 
 # constant
@@ -34,7 +36,7 @@ class LatencyEstimator:
         This class will estimate latency and return latency & arch params
     """
 
-    def __init__(self, block_type, input_channel, num_layers, sub_pid, dataset, parallel=False):
+    def __init__(self, block_type, input_channel, num_layers, dataset, gpu_id=0, parallel=False):
         self.logger = init_logger()
 
         # dataset
@@ -45,12 +47,12 @@ class LatencyEstimator:
                               input_channel=input_channel, n_classes=10)  # for cifar10
 
         # allocate 4 processes to 4 gpu respectively
-        device = 'cuda:{}'.format(sub_pid) if torch.cuda.is_available() else 'cuda'
+        device = 'cuda:{}'.format(gpu_id) if torch.cuda.is_available() else 'cuda'
         self.logger.info("assign to {}".format(device))
 
         self.device = torch.device(device)
         self.model.to(self.device)
-        if device == 'cuda:{}'.format(sub_pid):
+        if device == 'cuda:{}'.format(gpu_id):
             # self.p_model = torch.nn.DataParallel(module=self.model)
             cudnn.benchmark = True
         self.model.eval()
@@ -71,7 +73,8 @@ class LatencyEstimator:
         self.logger.info("init arch params: {}".format(arch_params))
 
         # estimate latency of blocks
-        latency = self.estimate_latency(max_reset_times=2)
+        latency = self.various_latency()
+        # latency = self.estimate_latency(max_reset_times=2)
 
         return arch_params, latency
 
@@ -170,7 +173,7 @@ class LatencyEstimator:
         """
         latency_avg = None
         outside_total_time = []
-        latency_list = []
+        torchprof_block_time = []
         with torch.no_grad():
             count = 1
             l_sum = 0
@@ -186,9 +189,9 @@ class LatencyEstimator:
                 # self.model.unused_modules_off()
 
                 # time
-                start = time.time()
-                self.model(images.cuda())
-                outside_total_time.append((time.time() - start))
+                # start = time.time()
+                # self.model(images.cuda(self.device))
+                # outside_total_time.append((time.time() - start))
 
                 # autograd
                 # with torch.autograd.profiler.profile(use_cuda=True) as prof:
@@ -196,10 +199,15 @@ class LatencyEstimator:
                 # self.logger.info("autograd: {}".format(prof.self_cpu_time_total))
 
                 # torchprof
-                # with torchprof.Profile(self.p_model, use_cuda=True) as prof:
-                #     self.p_model(images)
-                # self.logger.info("time: {}".format(self.p_model.module.latency_list))
-                # self.logger.info("torchprof: {}".format(sum(get_time(prof, target="blocks", show_events=False))))
+                with torchprof.Profile(self.model, use_cuda=True) as prof:
+                    start = time.time()
+                    self.model(images.cuda(self.device))
+                    outside_total_time.append((time.time() - start))
+                torchprof_time = sum(get_time(prof, target="blocks", show_events=False))
+                # self.logger.info("time: {}".format(self.model.latency_list))
+                # self.logger.info("\n{}".format(self.model.blocks[0].latency_df))
+                # self.logger.info("torchprof: {}".format(torchprof_time))
+                torchprof_block_time.append(torchprof_time)
 
                 # get latency
                 # latency = sum(get_time(prof, target="blocks", show_events=False))
@@ -214,9 +222,10 @@ class LatencyEstimator:
                     self.logger.info("{} times estimation".format(count))
             # for block in self.model.blocks:
             #     self.logger.info("{}".format(block.latency_df))
+            torchprof_df = pd.DataFrame(data=torchprof_block_time, columns=["torchprof_block"])
             outside_df = pd.DataFrame(data=self.model.unit_transform(outside_total_time), columns=["outside_total"])
             combined_df = pd.concat([self.model.latency_df.rename(columns={0: "inside_total"}), outside_df,
-                                     self.model.blocks[0].latency_df],
+                                     self.model.blocks[0].latency_df, torchprof_df],
                                     axis=1)  # .rename(columns={0: "inside_total", 1: "total"})
             from util.outlier import cut_outlier
             cut_df = cut_outlier(combined_df, min_border=0.25, max_border=0.75)

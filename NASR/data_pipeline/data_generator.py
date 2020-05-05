@@ -51,7 +51,7 @@ class DataGenerator:
             block_type=self.block_type,
             input_channel=self.input_channel,
             num_layers=self.num_layers,
-            sub_pid=self.sub_pid,
+            gpu_id=self.sub_pid,
             dataset=load
         )
 

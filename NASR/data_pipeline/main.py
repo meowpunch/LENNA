@@ -64,7 +64,7 @@ def parallel(destination, p_num=4):
     # generate child process
     with MyPool(p_num) as pool:
         pool.map(Worker(
-            load=load_dataset(),
+            load=load_dataset(batch_size=256),
             destination=destination
         ), range(p_num))
 
@@ -90,4 +90,4 @@ def main(arg="parallel"):
 
 
 if __name__ == '__main__':
-    main("parallel")
+    main("single")
