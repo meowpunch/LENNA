@@ -31,7 +31,7 @@ reduction_ops = [
 ]
 
 
-class LatencyEstimator:
+class LatencyEstimatorS:
     """
         This class will estimate latency and return latency & arch params
     """
@@ -41,9 +41,8 @@ class LatencyEstimator:
 
         # dataset
         self.test_loader = dataset
-
-        self.model = LennaNet(self, normal_ops=normal_ops, reduction_ops=reduction_ops,
-                              block_type=block_type, num_layers=num_layers,
+        self.model = LennaNet(num_blocks=[1], num_layers=num_layers,  normal_ops=normal_ops, reduction_ops=reduction_ops,
+                              block_type=block_type,
                               input_channel=input_channel, n_classes=10)  # for cifar10
 
         # allocate 4 processes to 4 gpu respectively

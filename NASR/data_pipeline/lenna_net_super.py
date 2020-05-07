@@ -5,12 +5,12 @@ from queue import Queue
 import copy
 
 class LennaNet(DartsRecastingNet):
-    def __init__(self, num_layers,
+    def __init__(self,  num_blocks, num_layers,
                  normal_ops, reduction_ops, block_type,
                  input_channel, n_classes = 1000,
                  mixedge_ver=2, threshold=0.5,
                  increase_option=False, increase_term=10,
-                 bn_param=(0.1, 1e-3), dropout_rate=0, num_blocks=[1]):
+                 bn_param=(0.1, 1e-3), dropout_rate=0):
         self._redundant_modules = None
         self._unused_modules = None
         self.num_layers = num_layers

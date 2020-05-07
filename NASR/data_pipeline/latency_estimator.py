@@ -42,7 +42,7 @@ class LatencyEstimator:
         # dataset
         self.test_loader = dataset
 
-        self.model = LennaNet(self, normal_ops=normal_ops, reduction_ops=reduction_ops,
+        self.model = LennaNet(normal_ops=normal_ops, reduction_ops=reduction_ops,
                               block_type=block_type, num_layers=num_layers,
                               input_channel=input_channel, n_classes=10)  # for cifar10
 
