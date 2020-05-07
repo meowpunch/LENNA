@@ -6,7 +6,7 @@ import torch
 import torchprof
 from torch.backends import cudnn
 
-from data_pipeline.lenna_net import LennaNet
+from data_pipeline.lenna_net_super import LennaNet
 from util.latency import get_time
 from util.logger import init_logger
 
@@ -33,18 +33,16 @@ reduction_ops = [
 
 class LatencyEstimator:
     """
-        This class will estimate latency and return latency & arch params
-    """
+            This class will estimate latency and return latency & arch params
+        """
 
     def __init__(self, block_type, input_channel, num_layers, dataset, gpu_id=0, parallel=False):
         self.logger = init_logger()
 
         # dataset
         self.test_loader = dataset
-
-        self.model = LennaNet(normal_ops=normal_ops, reduction_ops=reduction_ops,
-                              block_type=block_type, num_layers=num_layers,
-                              input_channel=input_channel, n_classes=10)  # for cifar10
+        self.model = LennaNet(num_blocks=[1], num_layers=num_layers, normal_ops=normal_ops, reduction_ops=reduction_ops,
+                              block_type=block_type, input_channel=input_channel, n_classes=10)  # for cifar10
 
         # allocate 4 processes to 4 gpu respectively
         device = 'cuda:{}'.format(gpu_id) if torch.cuda.is_available() else 'cuda'
@@ -131,15 +129,14 @@ class LatencyEstimator:
                 # self.logger.info("outer shape: {}".format(images.shape))
 
                 # infer
-                self.model(images.cuda(self.device))
+                with torchprof.Profile(self.model, use_cuda=True) as prof:
+                    self.model(images.cuda(self.device))
 
                 count += 1
                 if count % 10 == 0:
                     self.logger.info("{} times estimation".format(count))
-
-            latency = pd.Series(data=self.model.blocks[0].latency_list[15], name="latency")
-
-        return latency
+            latency_df = self.model.blocks[0].latency_df
+        return latency_df[latency_df.columns[-1]].rename("one_block_latency")
 
     def outer_total_latency(self, n_iter=100):
         """
@@ -164,7 +161,7 @@ class LatencyEstimator:
                 if count % 10 == 0:
                     self.logger.info("{} times estimation".format(count))
 
-        return pd.Series(latency_list, name="latency")
+        return pd.Series(latency_list, name="outer_latency_latency")
 
     def various_latency(self, n_iter=70):
         """

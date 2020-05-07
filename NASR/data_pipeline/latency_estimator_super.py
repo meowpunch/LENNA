@@ -130,13 +130,14 @@ class LatencyEstimatorS:
                 # self.logger.info("outer shape: {}".format(images.shape))
 
                 # infer
-                self.model(images.cuda(self.device))
+                with torchprof.Profile(self.model, use_cuda=True) as prof:
+                    self.model(images.cuda(self.device))
 
                 count += 1
                 if count % 10 == 0:
                     self.logger.info("{} times estimation".format(count))
 
-            latency = pd.Series(data=self.model.blocks[0].latency_list[15], name="latency")
+            latency = pd.Series(data=self.model.blocks[0].latency_list[15], name="one_block_latency")
 
         return latency
 
@@ -163,7 +164,7 @@ class LatencyEstimatorS:
                 if count % 10 == 0:
                     self.logger.info("{} times estimation".format(count))
 
-        return pd.Series(latency_list, name="latency")
+        return pd.Series(latency_list, name="outer_total_latency")
 
     def various_latency(self, n_iter=70):
         """
