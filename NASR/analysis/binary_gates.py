@@ -9,7 +9,7 @@ def latency_binary_gates(le, n_iter=50):
     return latency.quantile(0.4)
 
 
-def accumulate_latency(le, max_reset_times=100):
+def accumulate_latency(le, max_reset_times=100, n_iter=50):
     latency_history = []
 
     avg_history = []
@@ -19,7 +19,7 @@ def accumulate_latency(le, max_reset_times=100):
         le.logger.info("--------------- {} times reset binary gate ---------------".format(i))
 
         # accumulate latency of reset binary gate
-        latency_history.append(latency_binary_gates(le, n_iter=50))
+        latency_history.append(latency_binary_gates(le, n_iter=n_iter))
 
         # cumulative average
         if i is 0:
