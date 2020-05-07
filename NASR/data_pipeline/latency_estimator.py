@@ -73,8 +73,8 @@ class LatencyEstimator:
         self.logger.info("init arch params: {}".format(arch_params))
 
         # estimate latency of blocks
-        latency = self.various_latency()
-        # latency = self.estimate_latency(max_reset_times=2)
+        # latency = self.various_latency()
+        latency = self.estimate_latency(max_reset_times=10000)
 
         return arch_params, latency
 
