@@ -12,7 +12,7 @@ class LennaNet(DartsRecastingNet):
         LennaNet:
             first conv -> one block -> pool -> classifier
     """
-    def __init__(self, num_blocks, num_layers,
+    def __init__(self, num_layers,
                  normal_ops, reduction_ops, block_type,
                  input_channel, n_classes=1000,
                  bn_param=(0.1, 1e-3), dropout_rate=0,
