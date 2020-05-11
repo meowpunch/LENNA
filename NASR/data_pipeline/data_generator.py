@@ -20,7 +20,7 @@ class DataGenerator:
         # X
         np.random.seed()
         self.block_type = np.random.randint(0, 2)
-        self.input_channel = np.random.randint(1, 1025)
+        self.input_channel = 10
         self.num_layers = 5
         self.arch_params = None
 

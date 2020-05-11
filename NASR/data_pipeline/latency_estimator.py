@@ -80,14 +80,17 @@ class LatencyEstimator:
         # latency = self.various_latency()
         latency = self.estimate_latency(max_reset_times=10000)
 
-        return arch_params, latency
+        return arch_params_prob, latency
 
-    def estimate_latency(self, max_reset_times=10000):
+    def estimate_latency(self, threshold=1, max_reset_times=10000):
         """
             1. sum the 40% value of the measured latency every 50 resets of the binary gate.
             2. get avg cumulative latency(sum)
             3. ratio of error and avg
             4. if the ratio is less than 1 continuously 10 times, break the loop
+
+            TODO: change the threshold according to b_type and in_ch because threshold 1% is strictly for small value
+
         :return: latency
         """
         lat_sum, hit_num, pre_avg, cur_avg = 0, 0, 0, 0
@@ -104,13 +107,14 @@ class LatencyEstimator:
 
             # average
             cur_avg = lat_sum / (i + 1)
+            self.logger.info("cumulative_avg, pre_avg: {}, {}".format(cur_avg, pre_avg))
 
             # ratio
             ratio = abs(cur_avg - pre_avg) / cur_avg * 100
-
-            self.logger.info("cumulative_avg, pre_avg: {}, {}".format(cur_avg, pre_avg))
             self.logger.info("convergence ratio: {}".format(ratio))
-            if ratio < 1 and i >= 2:
+
+            # break by threshold & hit num
+            if ratio < threshold and i >= 2:
                 hit_num = hit_num + 1
                 self.logger.info("reset times, hit counts: {}, {}".format(i, hit_num))
                 if hit_num is 10:
