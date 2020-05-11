@@ -64,7 +64,7 @@ def parallel(destination, p_num=4):
     # generate child process
     with MyPool(p_num) as pool:
         pool.map(Worker(
-            load=load_dataset(batch_size=256),
+            load=load_dataset(batch_size=64),
             destination=destination
         ), range(p_num))
 
@@ -78,7 +78,7 @@ def parallel(destination, p_num=4):
 
 
 def single(destination):
-    DataPipeline(0, destination).process(load_dataset())
+    DataPipeline(0, destination).process(load_dataset(batch_size=64))
 
 
 def main(arg="parallel"):

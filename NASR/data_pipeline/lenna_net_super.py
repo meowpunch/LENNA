@@ -1,13 +1,14 @@
-from Recasting_ver.models.normal_nets.proxyless_nets import  DartsRecastingNet, DartsRecastingBlock
+from Recasting_ver.models.normal_nets.proxyless_nets import DartsRecastingNet, DartsRecastingBlock
 from Recasting_ver.modules.layers import MyModule, nn, ConvLayer, LinearLayer, ZeroLayer
 from Recasting_ver.modules.mix_op import MixedEdge, MixedEdge_v2, build_candidate_ops
 from queue import Queue
 import copy
 
+
 class LennaNet(DartsRecastingNet):
-    def __init__(self,  num_blocks, num_layers,
+    def __init__(self, num_blocks, num_layers,
                  normal_ops, reduction_ops, block_type,
-                 input_channel, n_classes = 1000,
+                 input_channel, n_classes=1000,
                  mixedge_ver=2, threshold=0.5,
                  increase_option=False, increase_term=10,
                  bn_param=(0.1, 1e-3), dropout_rate=0):
@@ -53,7 +54,7 @@ class LennaNet(DartsRecastingNet):
                 f //= 2
 
             for _ in range(nb - 1):  # Normal blocks (will not be calculated)
-                #fsize_list.append(f)
+                # fsize_list.append(f)
                 edges, fsize = self.build_normal_layers(normal_ops, output_channel, output_channel, self.num_layers, f)
                 b = DartsRecastingBlock(edges)
                 blocks += [b]
@@ -176,6 +177,7 @@ class LennaNet(DartsRecastingNet):
                     queue.put(child)
 
     """ architecture parameters related methods """
+
     def build_normal_layers(self, candidate_ops, input_channel, out_channel, num_layers, f):
         layer_list = []
         f_list = []
@@ -329,7 +331,7 @@ class LennaNet(DartsRecastingNet):
                 print(type(m), ' do not support `set_chosen_op_active()`')
 
     def set_active_via_net(self, net):
-        assert isinstance(net, LennaNet) #SuperDartsRecastingNet originally
+        assert isinstance(net, LennaNet)  # SuperDartsRecastingNet originally
         for self_m, net_m in zip(self.redundant_modules, net.redundant_modules):
             self_m.active_index = copy.deepcopy(net_m.active_index)
             self_m.inactive_index = copy.deepcopy(net_m.inactive_index)

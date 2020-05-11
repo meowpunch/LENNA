@@ -1,6 +1,5 @@
 from Recasting_ver.models.normal_nets.proxyless_nets import DartsRecastingNet, DartsRecastingBlock
-from Recasting_ver.models.super_nets.super_proxyless import SuperDartsRecastingNet
-from Recasting_ver.modules.layers import MyModule, nn, ConvLayer, LinearLayer
+from Recasting_ver.modules.layers import nn, ConvLayer, LinearLayer
 from Recasting_ver.modules.mix_op import MixedEdge, build_candidate_ops
 
 
@@ -12,6 +11,7 @@ class LennaNet(DartsRecastingNet):
         LennaNet:
             first conv -> one block -> pool -> classifier
     """
+
     def __init__(self, num_layers,
                  normal_ops, reduction_ops, block_type,
                  input_channel, n_classes=1000,
@@ -33,7 +33,7 @@ class LennaNet(DartsRecastingNet):
             block = [DartsRecastingBlock(edges)]
         else:
             output_channel = input_channel * 2
-            edges = self.build_reduction_layers(reduction_ops, normal_ops,input_channel, output_channel,
+            edges = self.build_reduction_layers(reduction_ops, normal_ops, input_channel, output_channel,
                                                 num_layers)
             block = [DartsRecastingBlock(edges)]
 

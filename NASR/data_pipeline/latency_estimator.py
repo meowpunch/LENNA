@@ -10,39 +10,37 @@ from data_pipeline.lenna_net_super import LennaNet
 from util.latency import get_time
 from util.logger import init_logger
 
-# constant
-
-# TODO: omit zero for summation
-normal_ops = [
-    '3x3_Conv', '5x5_Conv',
-    '3x3_ConvDW', '5x5_ConvDW',
-    '3x3_dConv', '5x5_dConv',
-    '3x3_dConvDW', '5x5_dConvDW',
-    '3x3_maxpool', '3x3_avgpool',
-    # 'Zero',
-    'Identity',
-]
-reduction_ops = [
-    '3x3_Conv', '5x5_Conv',
-    '3x3_ConvDW', '5x5_ConvDW',
-    '3x3_dConv', '5x5_dConv',
-    '3x3_dConvDW', '5x5_dConvDW',
-    '2x2_maxpool', '2x2_avgpool',
-]
-
 
 class LatencyEstimator:
     """
-            This class will estimate latency and return latency & arch params
-        """
+        This class will estimate latency and return latency & arch params
+    """
 
     def __init__(self, block_type, input_channel, num_layers, dataset, gpu_id=0, parallel=False):
+        self.normal_ops = [
+            '3x3_Conv', '5x5_Conv',
+            '3x3_ConvDW', '5x5_ConvDW',
+            '3x3_dConv', '5x5_dConv',
+            '3x3_dConvDW', '5x5_dConvDW',
+            '3x3_maxpool', '3x3_avgpool',
+            # 'Zero',
+            'Identity',
+        ]
+        self.reduction_ops = [
+            '3x3_Conv', '5x5_Conv',
+            '3x3_ConvDW', '5x5_ConvDW',
+            '3x3_dConv', '5x5_dConv',
+            '3x3_dConvDW', '5x5_dConvDW',
+            '2x2_maxpool', '2x2_avgpool',
+        ]
+
         self.logger = init_logger()
 
         # dataset
         self.test_loader = dataset
-        self.model = LennaNet(num_blocks=[1], num_layers=num_layers, normal_ops=normal_ops, reduction_ops=reduction_ops,
-                              block_type=block_type, input_channel=input_channel, n_classes=10)  # for cifar10
+        self.model = LennaNet(num_blocks=[1], num_layers=num_layers, normal_ops=self.normal_ops,
+                              reduction_ops=self.reduction_ops, block_type=block_type,
+                              input_channel=input_channel, n_classes=10)  # for cifar10
 
         # allocate 4 processes to 4 gpu respectively
         device = 'cuda:{}'.format(gpu_id) if torch.cuda.is_available() else 'cuda'
@@ -55,16 +53,14 @@ class LatencyEstimator:
             cudnn.benchmark = True
         self.model.eval()
 
-    def execute(self):
-        return self.process()
-
-    def process(self):
+    def process(self, init_ratio=5):
         """
         return: latency of one block & arch params & latency list(for jupyter notebook)
         """
         # init architecture parameters by uniform distribution
-        self.model.init_arch_params(init_type='uniform', init_ratio=100)
+        self.model.init_arch_params(init_type='uniform', init_ratio=init_ratio)
 
+        # get arch params
         arch_params_prob = list(map(
             lambda param: torch.Tensor.cpu(param).detach().numpy().tolist(),
             self.model.arch_params_prob()
@@ -73,11 +69,14 @@ class LatencyEstimator:
             lambda param: torch.Tensor.cpu(param).detach().numpy().tolist(),
             self.model.architecture_parameters()
         ))
+
         self.logger.info("arch params: {}".format(arch_params))
-        self.logger.info("arch params prob: {}".format(arch_params_prob))
+        # self.logger.info("arch params prob: \n{}".format(pd.DataFrame(arch_params_prob, columns=self.normal_ops)))
+
+        describe = pd.DataFrame(arch_params_prob, columns=self.normal_ops).T.describe()
+        self.logger.info("arch params prob: \n{}".format(describe))
 
         # estimate latency of blocks
-        # latency = self.various_latency()
         latency = self.estimate_latency(max_reset_times=10000)
 
         return arch_params_prob, latency
@@ -141,6 +140,7 @@ class LatencyEstimator:
                 # self.logger.info("outer shape: {}".format(images.shape))
 
                 # infer
+                # torchprof is not used but prevent lazy operation of time module
                 with torchprof.Profile(self.model, use_cuda=True) as prof:
                     self.model(images.cuda(self.device))
 
