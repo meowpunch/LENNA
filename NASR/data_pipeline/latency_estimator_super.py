@@ -9,6 +9,7 @@ from torch.backends import cudnn
 from data_pipeline.lenna_net_super import LennaNet
 from util.latency import get_time
 from util.logger import init_logger
+from queue import Queue
 
 # constant
 
@@ -19,7 +20,6 @@ normal_ops = [
     '3x3_dConv', '5x5_dConv',
     '3x3_dConvDW', '5x5_dConvDW',
     '3x3_maxpool', '3x3_avgpool',
-    'Zero',
     'Identity',
 ]
 reduction_ops = [
@@ -65,9 +65,24 @@ class LatencyEstimatorS:
         """
         # init architecture parameters by uniform distribution
         self.model.init_arch_params()
-        arch_params = list(map(
-            lambda param: torch.Tensor.cpu(param).detach().numpy(),
-            self.model.architecture_parameters()
+
+        # revised here
+        prob_list = []
+        queue = Queue()
+        queue.put(self.model)
+        while not queue.empty():
+            module = queue.get()
+            for m in module.modules:
+                child = module._modules[m]
+                if child.__str__().startswith('MixedEdge_v2'):
+                    prob_list.append(child.probs_over_ops())
+
+        # arch_params = list(map(
+        #     lambda param: torch.Tensor.cpu(param).detach().numpy(),
+        #     self.model.architecture_parameters()
+        # ))
+        arch_params = list(map(lambda param: torch.Tensor.cpu(param).detach().numpy(),
+                               prob_list
         ))
         self.logger.info("init arch params: {}".format(arch_params))
 
