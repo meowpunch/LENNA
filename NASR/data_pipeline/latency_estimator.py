@@ -19,7 +19,7 @@ normal_ops = [
     '3x3_dConv', '5x5_dConv',
     '3x3_dConvDW', '5x5_dConvDW',
     '3x3_maxpool', '3x3_avgpool',
-    'Zero',
+    # 'Zero',
     'Identity',
 ]
 reduction_ops = [
@@ -63,12 +63,18 @@ class LatencyEstimator:
         return: latency of one block & arch params & latency list(for jupyter notebook)
         """
         # init architecture parameters by uniform distribution
-        self.model.init_arch_params()
+        self.model.init_arch_params(init_type='uniform', init_ratio=100)
+
+        arch_params_prob = list(map(
+            lambda param: torch.Tensor.cpu(param).detach().numpy().tolist(),
+            self.model.arch_params_prob()
+        ))
         arch_params = list(map(
-            lambda param: torch.Tensor.cpu(param).detach().numpy(),
+            lambda param: torch.Tensor.cpu(param).detach().numpy().tolist(),
             self.model.architecture_parameters()
         ))
-        self.logger.info("init arch params: {}".format(arch_params))
+        self.logger.info("arch params: {}".format(arch_params))
+        self.logger.info("arch params prob: {}".format(arch_params_prob))
 
         # estimate latency of blocks
         # latency = self.various_latency()
@@ -90,7 +96,9 @@ class LatencyEstimator:
             self.logger.info("**{} times reset binary gate**".format(i))
 
             # the 40% value
-            new_lat = self.outer_total_latency(n_iter=50).quantile(q=0.4)
+            latency_df = self.one_block_latency(n_iter=10)
+            # self.logger.info("one block latency describe: {}".format(latency_df.describe()))
+            new_lat = latency_df.quantile(q=0.4)
             self.logger.info("newly estimated latency: {}".format(new_lat))
             lat_sum = lat_sum + new_lat
 
@@ -102,7 +110,7 @@ class LatencyEstimator:
 
             self.logger.info("cumulative_avg, pre_avg: {}, {}".format(cur_avg, pre_avg))
             self.logger.info("convergence ratio: {}".format(ratio))
-            if ratio < 1 and i >= 50:
+            if ratio < 1 and i >= 2:
                 hit_num = hit_num + 1
                 self.logger.info("reset times, hit counts: {}, {}".format(i, hit_num))
                 if hit_num is 10:
@@ -117,7 +125,7 @@ class LatencyEstimator:
 
     def one_block_latency(self, n_iter=100):
         """
-        :return: inner one block
+        :return: inner one block: pd.DataFrame
         """
         with torch.no_grad():
             count = 1

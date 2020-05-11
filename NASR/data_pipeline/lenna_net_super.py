@@ -81,6 +81,17 @@ class LennaNet(DartsRecastingNet):
             if 'AP_path_alpha' in name:
                 yield param
 
+    def arch_params_prob(self):
+        """
+            block -> layer -> mixed_edge
+        """
+        prob_list = []
+        for block in self.blocks:
+            for layer in block.layer_list:
+                for mixed_edge in layer:
+                    prob_list.append(mixed_edge.probs_over_ops)
+        return prob_list
+
     def architecture_parameters_recasting(self, block_idxs):
         for idx in block_idxs:
             for name, param in self.blocks[idx].named_parameters():
