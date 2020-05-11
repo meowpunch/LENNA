@@ -1,6 +1,7 @@
 import time
 from functools import reduce
 
+import numpy as np
 import pandas as pd
 import torch
 import torchprof
@@ -58,6 +59,7 @@ class LatencyEstimator:
         return: latency of one block & arch params & latency list(for jupyter notebook)
         """
         # init architecture parameters by uniform distribution
+        self.logger.info("init ratio: {}".format(init_ratio))
         self.model.init_arch_params(init_type='uniform', init_ratio=init_ratio)
 
         # get arch params
@@ -65,19 +67,19 @@ class LatencyEstimator:
             lambda param: torch.Tensor.cpu(param).detach().numpy().tolist(),
             self.model.arch_params_prob()
         ))
-        arch_params = list(map(
-            lambda param: torch.Tensor.cpu(param).detach().numpy().tolist(),
-            self.model.architecture_parameters()
-        ))
 
-        self.logger.info("arch params: {}".format(arch_params))
+        # arch_params = list(map(
+        #     lambda param: torch.Tensor.cpu(param).detach().numpy().tolist(),
+        #     self.model.architecture_parameters()
+        # ))
+
+        # self.logger.info("arch params: {}".format(arch_params))
         # self.logger.info("arch params prob: \n{}".format(pd.DataFrame(arch_params_prob, columns=self.normal_ops)))
-
-        describe = pd.DataFrame(arch_params_prob, columns=self.normal_ops).T.describe()
-        self.logger.info("arch params prob: \n{}".format(describe))
+        # describe = pd.DataFrame(arch_params_prob, columns=self.normal_ops).T.describe()
+        # self.logger.info("arch params prob: \n{}".format(describe))
 
         # estimate latency of blocks
-        latency = self.estimate_latency(max_reset_times=10000)
+        latency = self.estimate_latency(max_reset_times=1000)
 
         return arch_params_prob, latency
 
@@ -239,7 +241,7 @@ class LatencyEstimator:
             from util.outlier import cut_outlier
             cut_df = cut_outlier(combined_df, min_border=0.25, max_border=0.75)
             self.logger.info("\n{}".format(combined_df))
-            self.logger.info("\ntime: \n{} \nafter cut oulier: \n{}".format(
+            self.logger.info("\ntime: \n{} \nafter cut outlier: \n{}".format(
                 combined_df.describe(),
                 cut_df.describe()
             ))

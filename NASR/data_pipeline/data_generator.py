@@ -21,7 +21,7 @@ class DataGenerator:
         np.random.seed()
         self.block_type = np.random.randint(0, 2)
         self.input_channel = np.random.randint(1, 512)
-        self.num_layers = 5
+        self.num_layers = 2
         self.arch_params = None
 
         self.logger.info("init b_type, in_ch: {}, {} ".format(
@@ -56,7 +56,9 @@ class DataGenerator:
         )
 
         def one_row(x):
-            self.arch_params, self.latency = le.process()
+            self.arch_params, self.latency = le.process(
+                init_ratio=np.random.choice([0.01, 0.05, 0.1, 1, 5, 10])
+            )
             return np.append(self.serialize_x, self.latency)
 
         df = pd.DataFrame(map(one_row, range(num_rows)))

@@ -3,6 +3,7 @@ import os
 import pandas as pd
 
 from data_pipeline.core import DataPipeline
+from multiprocessing import Process, Lock
 from util.daemon import MyPool
 from util.dataset import load_dataset
 from util.logger import init_logger
@@ -15,6 +16,10 @@ class Worker:
 
     def __call__(self, x):
         DataPipeline(x, self.destination).process(self.load)
+
+
+def worker(index, load, destination, lock):
+    DataPipeline(index, destination, lock).process(load)
 
 
 def collect_df(destination, num):
@@ -57,10 +62,7 @@ def collect_data(destination, num):
             os.remove(destination + str(i))
 
 
-def parallel(destination, p_num=4):
-    logger = init_logger()
-    logger.info("director id: %s" % (os.getpid()))
-
+def pool_parallel(destination, p_num=4):
     # generate child process
     with MyPool(p_num) as pool:
         pool.map(Worker(
@@ -68,13 +70,29 @@ def parallel(destination, p_num=4):
             destination=destination
         ), range(p_num))
 
-    # wait all child proces to work done
+    # wait all child process to work done
     pool.close()
     pool.join()
 
     # collect data
     collect_df(destination=destination, num=p_num)
-    logger.info("success to collect data into '{dest}'".format(dest=destination))
+    init_logger().info("success to collect data into '{dest}'".format(dest=destination))
+
+
+def parallel(destination, p_num=4):
+    lock = Lock()
+    procs = []
+
+    # generate child process
+    for i in range(p_num):
+        proc = Process(
+            target=worker, args=(i, destination, load_dataset(batch_size=64), lock)
+        )
+        procs.append(proc)
+        proc.start()
+
+    for proc in procs:
+        proc.join()
 
 
 def single(destination):
@@ -84,10 +102,12 @@ def single(destination):
 def main(arg="parallel"):
     destination = "training_data/data"
     if arg is "parallel":
+        logger = init_logger()
+        logger.info("director id: %s" % (os.getpid()))
         parallel(destination=destination, p_num=4)
     else:
         single(destination=destination)
 
 
 if __name__ == '__main__':
-    main("single")
+    main("parallel")

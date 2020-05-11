@@ -6,12 +6,13 @@ from util.logger import init_logger
 
 
 class DataPipeline:
-    def __init__(self, arg, destination):
+    def __init__(self, idx, destination, lock):
         self.logger = init_logger()
-        self.sub_pid = arg
+        self.sub_pid = idx
+        self.lock = lock
 
         # constant
-        self.destination = destination + str(arg)
+        self.destination = destination  # + str(idx)
 
         self.df = None
 
@@ -41,9 +42,15 @@ class DataPipeline:
             return 0
 
     def save_file(self):
+        # lock
+        self.lock.acquire()
+
+        # save
         if os.path.isfile(self.destination) is True:
             self.df.to_csv(self.destination, mode='w', index=False, header=True)
         else:
             self.df.to_csv(self.destination, mode='a', index=False, header=False)
-
         self.logger.info("success to save data in '{dest}'".format(dest=self.destination))
+
+        # unlock
+        self.lock.release()
