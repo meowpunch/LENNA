@@ -86,7 +86,7 @@ def parallel(destination, p_num=4):
     # generate child process
     for i in range(p_num):
         proc = Process(
-            target=worker, args=(i, destination, load_dataset(batch_size=64), lock)
+            target=worker, args=(i, load_dataset(batch_size=64), destination, lock)
         )
         procs.append(proc)
         proc.start()
@@ -96,7 +96,7 @@ def parallel(destination, p_num=4):
 
 
 def single(destination):
-    DataPipeline(0, destination).process(load_dataset(batch_size=64))
+    DataPipeline(0, destination, None).process(load_dataset(batch_size=64), parallel=False)
 
 
 def main(arg="parallel"):
@@ -110,4 +110,4 @@ def main(arg="parallel"):
 
 
 if __name__ == '__main__':
-    main("parallel")
+    main("single")

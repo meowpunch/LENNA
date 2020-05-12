@@ -20,8 +20,8 @@ class DataGenerator:
         # X
         np.random.seed()
         self.block_type = np.random.randint(0, 2)
-        self.input_channel = np.random.randint(1, 512)
-        self.num_layers = 2
+        self.input_channel = np.random.randint(1, 1000)
+        self.num_layers = 5
         self.arch_params = None
 
         self.logger.info("init b_type, in_ch: {}, {} ".format(
@@ -55,13 +55,16 @@ class DataGenerator:
             dataset=load
         )
 
+        df_0 = pd.DataFrame([[self.block_type, self.input_channel]], columns=["b_type", "in_ch"])
+
         def one_row(x):
-            self.arch_params, self.latency = le.process(
+            arch_params, latency = le.process(
+                # init ratio represents the degree of training.
                 init_ratio=np.random.choice([0.01, 0.05, 0.1, 1, 5, 10])
             )
-            return np.append(self.serialize_x, self.latency)
+            return pd.concat([df_0, arch_params, pd.Series(latency, name="latency")], axis=1)
 
-        df = pd.DataFrame(map(one_row, range(num_rows)))
+        df = reduce(lambda x, y: x.append(y), map(one_row, range(num_rows)))
         self.logger.info("show 5 rows\n {}".format(df.head(5)))
 
         return df

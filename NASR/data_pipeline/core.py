@@ -16,41 +16,44 @@ class DataPipeline:
 
         self.df = None
 
-    def process(self, load, shadow=True):
+    def process(self, load, parallel=True):
         """
-            TODO: not produce shadow process.
+
         """
-        if shadow:
-            shadow = os.fork()
-            latency_list = None
-            if shadow == 0:
-                dg = DataGenerator(sub_pid=self.sub_pid)
-                self.df = dg.process(load=load, num_rows=1)
+        if parallel:
+            while 1000:
+                shadow = os.fork()
+                latency_list = None
+                if shadow == 0:
+                    dg = DataGenerator(sub_pid=self.sub_pid)
+                    self.df = dg.process(load=load, num_rows=2)
 
-                self.save_file()
-                sys.exit()
-            else:
-                self.logger.info("%s worker got shadow %s" % (os.getpid(), shadow))
+                    self.save_to_csv()
+                    sys.exit()
+                else:
+                    self.logger.info("%s worker got shadow %s" % (os.getpid(), shadow))
 
-            pid, status = os.waitpid(shadow, 0)
-            self.logger.info("wait returned, pid = %d, status = %d" % (pid, status))
+                pid, status = os.waitpid(shadow, 0)
+                self.logger.info("wait returned, pid = %d, status = %d" % (pid, status))
             return 0
         else:
             dg = DataGenerator()
             self.df = dg.process(load=load, num_rows=1)
-            self.save_file()
+            self.save_to_csv()
             return 0
 
-    def save_file(self):
+    def save_to_csv(self):
         # lock
-        self.lock.acquire()
+        if self.lock:
+            self.lock.acquire()
 
         # save
         if os.path.isfile(self.destination) is True:
-            self.df.to_csv(self.destination, mode='w', index=False, header=True)
-        else:
             self.df.to_csv(self.destination, mode='a', index=False, header=False)
+        else:
+            self.df.to_csv(self.destination, mode='w', index=False, header=True)
         self.logger.info("success to save data in '{dest}'".format(dest=self.destination))
 
         # unlock
-        self.lock.release()
+        if self.lock:
+            self.lock.release()

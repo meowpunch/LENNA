@@ -56,7 +56,7 @@ class LatencyEstimator:
 
     def process(self, init_ratio=5):
         """
-        return: latency of one block & arch params & latency list(for jupyter notebook)
+        return: arch params & latency of one block
         """
         # init architecture parameters by uniform distribution
         self.logger.info("init ratio: {}".format(init_ratio))
@@ -64,7 +64,7 @@ class LatencyEstimator:
 
         # get arch params
         arch_params_prob = list(map(
-            lambda param: torch.Tensor.cpu(param).detach().numpy().tolist(),
+            lambda p: torch.Tensor.cpu(p).detach().numpy().tolist(),
             self.model.arch_params_prob()
         ))
 
@@ -81,7 +81,15 @@ class LatencyEstimator:
         # estimate latency of blocks
         latency = self.estimate_latency(max_reset_times=1000)
 
-        return arch_params_prob, latency
+        # TODO: functionalize
+        df_list = []
+        for idx, param in enumerate(arch_params_prob):
+            # fillna with zero
+            if len(param) is 10:
+                param.append(0)
+            df_list.append(pd.DataFrame(data=[param], columns=["{}_{}".format(op, str(idx)) for op in self.normal_ops]))
+
+        return pd.concat(df_list, axis=1), latency
 
     def estimate_latency(self, threshold=1, max_reset_times=10000):
         """
@@ -100,8 +108,8 @@ class LatencyEstimator:
             self.logger.info("**{} times reset binary gate**".format(i))
 
             # the 40% value
-            latency_df = self.one_block_latency(n_iter=10)
-            # self.logger.info("one block latency describe: {}".format(latency_df.describe()))
+            latency_df = self.one_block_latency(n_iter=20)
+            self.logger.info("one block latency describe: {}".format(latency_df.describe()))
             new_lat = latency_df.quantile(q=0.4)
             self.logger.info("newly estimated latency: {}".format(new_lat))
             lat_sum = lat_sum + new_lat
@@ -132,6 +140,7 @@ class LatencyEstimator:
         """
         :return: inner one block: pd.DataFrame
         """
+        self.model.blocks[0].reset_latency_list()
         with torch.no_grad():
             count = 1
             for idx, data in enumerate(self.test_loader):

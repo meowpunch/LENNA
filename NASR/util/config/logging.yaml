@@ -24,6 +24,6 @@ loggers:
     level: DEBUG
     handlers:
     - console
-#    - file_debug
+    - file_debug
 #    - file_error
     propagate: true
