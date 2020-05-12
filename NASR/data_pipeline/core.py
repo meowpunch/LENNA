@@ -16,17 +16,16 @@ class DataPipeline:
 
         self.df = None
 
-    def process(self, load, parallel=True):
+    def process(self, load, parallel=True, num_rows=100):
         """
-
         """
         if parallel:
-            while 1000:
+            for i in range(1000):
                 shadow = os.fork()
                 latency_list = None
                 if shadow == 0:
                     dg = DataGenerator(sub_pid=self.sub_pid)
-                    self.df = dg.process(load=load, num_rows=2)
+                    self.df = dg.process(load=load, num_rows=num_rows)
 
                     self.save_to_csv()
                     sys.exit()
@@ -35,6 +34,7 @@ class DataPipeline:
 
                 pid, status = os.waitpid(shadow, 0)
                 self.logger.info("wait returned, pid = %d, status = %d" % (pid, status))
+                self.logger.info("------------------------ {}*{} rows ------------------------".format(i, num_rows))
             return 0
         else:
             dg = DataGenerator()
