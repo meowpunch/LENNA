@@ -86,7 +86,7 @@ def parallel(destination, p_num=4):
     # generate child process
     for i in range(p_num):
         proc = Process(
-            target=worker, args=(i, load_dataset(batch_size=64), destination, lock)
+            target=worker, args=(i, load_dataset(batch_size=32), destination, lock)
         )
         procs.append(proc)
         proc.start()

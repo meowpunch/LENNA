@@ -39,6 +39,10 @@ class LatencyEstimator:
 
         # dataset
         self.test_loader = dataset
+
+        # model
+        self.b_type = block_type
+        self.in_ch = input_channel
         self.model = LennaNet(num_blocks=[1], num_layers=num_layers, normal_ops=self.normal_ops,
                               reduction_ops=self.reduction_ops, block_type=block_type,
                               input_channel=input_channel, n_classes=10)  # for cifar10
@@ -105,7 +109,7 @@ class LatencyEstimator:
         lat_sum, hit_num, pre_avg, cur_avg = 0, 0, 0, 0
         for i in range(max_reset_times):
             self.model.reset_binary_gates()
-            self.logger.info("**{} times reset binary gate**".format(i))
+            self.logger.info("**{} times reset binary gate (b_type/in_ch: {}/{})**".format(i, self.b_type, self.in_ch))
 
             # the 40% value
             latency_df = self.one_block_latency(n_iter=20)

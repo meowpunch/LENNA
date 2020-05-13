@@ -19,8 +19,9 @@ class DataPipeline:
     def process(self, load, parallel=True, num_rows=100):
         """
         """
+        i = 0
         if parallel:
-            for i in range(1000):
+            while i < 2500:
                 shadow = os.fork()
                 latency_list = None
                 if shadow == 0:
@@ -28,12 +29,16 @@ class DataPipeline:
                     self.df = dg.process(load=load, num_rows=num_rows)
 
                     self.save_to_csv()
+
                     sys.exit()
                 else:
                     self.logger.info("%s worker got shadow %s" % (os.getpid(), shadow))
 
                 pid, status = os.waitpid(shadow, 0)
                 self.logger.info("wait returned, pid = %d, status = %d" % (pid, status))
+
+                # TODO: increase 1 to i on shadow.
+                i = i + 1
                 self.logger.info("------------------------ {}*{} rows ------------------------".format(i, num_rows))
             return 0
         else:

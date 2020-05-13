@@ -42,7 +42,7 @@ class DataGenerator:
                 lambda a, b: np.append(a, b), self.arch_params
             ))
 
-    def process(self, load, num_rows=100):
+    def process(self, load, num_rows=10):
         """
         return: X, y, latency_list
         """
