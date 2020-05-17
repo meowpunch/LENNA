@@ -3,7 +3,8 @@ from Recasting_ver.modules.layers import MyModule, nn, ConvLayer, LinearLayer, Z
 from Recasting_ver.modules.mix_op import MixedEdge, MixedEdge_v2, build_candidate_ops
 from queue import Queue
 import copy
-
+import numpy as np
+import torch
 
 class LennaNet(DartsRecastingNet):
     def __init__(self, num_blocks, num_layers,
@@ -269,12 +270,16 @@ class LennaNet(DartsRecastingNet):
 
     def init_arch_params(self, init_type='normal', init_ratio=1e-3):
         for param in self.architecture_parameters():
-            if init_type == 'normal':
-                param.data.normal_(0, init_ratio)
-            elif init_type == 'uniform':
-                param.data.uniform_(-init_ratio, init_ratio)
-            else:
-                raise NotImplementedError
+            param_len = param.size()[0]
+            param.data = torch.from_numpy(np.random.multinomial(1000, [1/param_len]*param_len)).float()
+
+        # for param in self.architecture_parameters():
+        #     if init_type == 'normal':
+        #         param.data.normal_(0, init_ratio)
+        #     elif init_type == 'uniform':
+        #         param.data.uniform_(-init_ratio, init_ratio)
+        #     else:
+        #         raise NotImplementedError
 
     def reset_binary_gates(self):
         for m in self.redundant_modules:
