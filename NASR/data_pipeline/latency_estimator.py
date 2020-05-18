@@ -7,7 +7,7 @@ import torch
 import torchprof
 from torch.backends import cudnn
 
-from data_pipeline.lenna_net_super import LennaNet
+from data_pipeline.lenna_net_sub import LennaNet
 from util.latency import get_time
 from util.logger import init_logger
 
@@ -18,6 +18,7 @@ class LatencyEstimator:
     """
 
     def __init__(self, block_type, input_channel, num_layers, dataset, gpu_id=0, parallel=False):
+
         self.normal_ops = [
             '3x3_Conv', '5x5_Conv',
             '3x3_ConvDW', '5x5_ConvDW',
@@ -38,6 +39,7 @@ class LatencyEstimator:
         self.logger = init_logger()
 
         # dataset
+
         self.test_loader = dataset
 
         # model
@@ -52,6 +54,8 @@ class LatencyEstimator:
         self.logger.info("assign to {}".format(device))
 
         self.device = torch.device(device)
+        torch.cuda.set_device(self.device)
+
         self.model.to(self.device)
         if device == 'cuda:{}'.format(gpu_id):
             # self.p_model = torch.nn.DataParallel(module=self.model)
@@ -63,8 +67,7 @@ class LatencyEstimator:
         return: arch params & latency of one block
         """
         # init architecture parameters by uniform distribution
-        self.logger.info("init ratio: {}".format(init_ratio))
-        self.model.init_arch_params(init_type='uniform', init_ratio=init_ratio)
+        self.model.init_arch_params(init_type='uniform', init_ratio=0.0001)
 
         # get arch params
         arch_params_prob = list(map(
@@ -78,8 +81,8 @@ class LatencyEstimator:
         # ))
 
         # self.logger.info("arch params: {}".format(arch_params))
-        # self.logger.info("arch params prob: \n{}".format(pd.DataFrame(arch_params_prob, columns=self.normal_ops)))
-        # describe = pd.DataFrame(arch_params_prob, columns=self.normal_ops).T.describe()
+        self.logger.info("arch params prob: \n{}".format(pd.DataFrame(arch_params_prob, columns=self.normal_ops)))
+        describe = pd.DataFrame(arch_params_prob, columns=self.normal_ops).T.describe()
         # self.logger.info("arch params prob: \n{}".format(describe))
 
         # estimate latency of blocks
@@ -95,7 +98,7 @@ class LatencyEstimator:
 
         return pd.concat(df_list, axis=1), latency
 
-    def estimate_latency(self, threshold=1, max_reset_times=10000):
+    def estimate_latency(self, threshold=0.5, max_reset_times=10000):
         """
             1. sum the 40% value of the measured latency every 50 resets of the binary gate.
             2. get avg cumulative latency(sum)
@@ -130,7 +133,7 @@ class LatencyEstimator:
             if ratio < threshold and i >= 2:
                 hit_num = hit_num + 1
                 self.logger.info("reset times, hit counts: {}, {}".format(i, hit_num))
-                if hit_num is 10:
+                if hit_num is 15:
                     self.logger.info("final latency: {}".format(cur_avg))
                     break
             else:

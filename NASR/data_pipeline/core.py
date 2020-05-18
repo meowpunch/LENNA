@@ -16,17 +16,17 @@ class DataPipeline:
 
         self.df = None
 
-    def process(self, load, parallel=True, num_rows=100):
+    def process(self, load, o_loop=2500, parallel=True, i_loop=100):
         """
         """
         i = 0
         if parallel:
-            while i < 2500:
+            while i < o_loop:
                 shadow = os.fork()
                 latency_list = None
                 if shadow == 0:
                     dg = DataGenerator(sub_pid=self.sub_pid)
-                    self.df = dg.process(load=load, num_rows=num_rows)
+                    self.df = dg.process(load=load, num_rows=i_loop)
 
                     self.save_to_csv()
 
@@ -39,11 +39,11 @@ class DataPipeline:
 
                 # TODO: increase 1 to i on shadow.
                 i = i + 1
-                self.logger.info("------------------------ {}*{} rows ------------------------".format(i, num_rows))
+                self.logger.info("------------------------ {}*{} rows ------------------------".format(i, i_loop))
             return 0
         else:
             dg = DataGenerator()
-            self.df = dg.process(load=load, num_rows=1)
+            self.df = dg.process(load=load, num_rows=2)
             self.save_to_csv()
             return 0
 

@@ -10,16 +10,20 @@ from util.logger import init_logger
 
 
 class Worker:
-    def __init__(self, load, destination):
+    def __init__(self, load, destination, outer_loop, inner_loop):
         self.load = load
         self.destination = destination
+        self.out_loop = outer_loop
+        self.in_loop = inner_loop
 
     def __call__(self, x):
-        DataPipeline(x, self.destination).process(self.load)
+        DataPipeline(x, self.destination).process(
+            load=self.load, o_loop=self.out_loop, parallel=True, i_loop=self.in_loop
+        )
 
 
-def worker(index, load, destination, lock):
-    DataPipeline(index, destination, lock).process(load)
+def worker(index, load, destination, lock, outer_loop, inner_loop):
+    DataPipeline(index, destination, lock).process(load, o_loop=outer_loop, parallel=True, i_loop=inner_loop)
 
 
 def collect_df(destination, num):
@@ -79,14 +83,14 @@ def pool_parallel(destination, p_num=4):
     init_logger().info("success to collect data into '{dest}'".format(dest=destination))
 
 
-def parallel(destination, p_num=4):
+def parallel(destination, outer_loop, inner_loop, p_num=4):
     lock = Lock()
     procs = []
 
     # generate child process
     for i in range(p_num):
         proc = Process(
-            target=worker, args=(i, load_dataset(batch_size=32), destination, lock)
+            target=worker, args=(i, load_dataset(batch_size=32), destination, lock, outer_loop, inner_loop)
         )
         procs.append(proc)
         proc.start()
@@ -104,7 +108,7 @@ def main(arg="parallel"):
     if arg is "parallel":
         logger = init_logger()
         logger.info("director id: %s" % (os.getpid()))
-        parallel(destination=destination, p_num=4)
+        parallel(destination=destination, outer_loop=2, inner_loop=1, p_num=4)
     else:
         single(destination=destination)
 

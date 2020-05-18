@@ -6,7 +6,6 @@ import torchprof
 
 from model.test_model import MyModel1, MyModel2, MyModel3, Parallel1, Parallel2, Reduction
 from util.latency import get_time
-from util.latency import get_time
 from util.logger import init_logger
 
 borders = '-' * 30
@@ -62,8 +61,8 @@ class OpsAnalyzer:
 
             # model.latency_list = []
             model(self.X)
-            # if i % 20 is 0:
-            #     self.logger.info("estimate {i} times".format(i=i))
+            if i % 20 is 0:
+                self.logger.info("estimate {i} times".format(i=i))
 
         self.logger.info(model.size_list)
 

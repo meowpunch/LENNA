@@ -19,8 +19,8 @@ class DataGenerator:
 
         # X
         np.random.seed()
-        self.block_type = np.random.randint(0, 2)
-        self.input_channel = np.random.randint(1, 1000)
+        self.block_type = 1  # np.random.randint(0, 2)
+        self.input_channel = 463  # np.random.randint(1, 1000)
         self.num_layers = 5
         self.arch_params = None
 
@@ -62,6 +62,7 @@ class DataGenerator:
                 # init ratio represents the degree of training.
                 init_ratio=np.random.choice([0.01, 0.05, 0.1, 1, 5, 10])
             )
+            self.logger.info("{} rows ".format(x))
             return pd.concat([df_0, arch_params, pd.Series(latency, name="latency")], axis=1)
 
         df = reduce(lambda x, y: x.append(y), map(one_row, range(num_rows)))

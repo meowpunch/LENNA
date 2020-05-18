@@ -269,18 +269,19 @@ class LennaNet(DartsRecastingNet):
         return entropy
 
     def init_arch_params(self, init_type='normal', init_ratio=1e-3):
-        self.logger.info("init_ratio: {}".format(init_ratio))
-        for param in self.architecture_parameters():
-            param_len = param.size()[0]
-            param.data = torch.from_numpy(np.random.multinomial(1000, [1/param_len]*param_len)).float()
-
+        # self.logger.info("init_ratio: {}".format(init_ratio))
         # for param in self.architecture_parameters():
-        #     if init_type == 'normal':
-        #         param.data.normal_(0, init_ratio)
-        #     elif init_type == 'uniform':
-        #         param.data.uniform_(-init_ratio, init_ratio)
-        #     else:
-        #         raise NotImplementedError
+        #     param_len = param.size()[0]
+        #     param.data = torch.from_numpy(np.random.multinomial(1000, [1/param_len]*param_len)).float()
+
+        for param in self.architecture_parameters():
+            if init_type == 'normal':
+                param.data.normal_(0, init_ratio)
+            elif init_type == 'uniform':
+                # param.data.uniform_(-init_ratio, init_ratio)
+                param.data.uniform_(init_ratio, init_ratio)
+            else:
+                raise NotImplementedError
 
     def reset_binary_gates(self):
         for m in self.redundant_modules:
