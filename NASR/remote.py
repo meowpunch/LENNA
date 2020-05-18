@@ -14,7 +14,7 @@ def main(argv):
 
     # total rows: outer * inner * p_num
     # parallel(destination=destination, outer_loop=250, inner_loop=10, p_num=4)
-    single(destination=destination)
+    single(destination=destination, o_loop=250, i_loop=10)
 
 
 if __name__ == '__main__':

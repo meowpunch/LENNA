@@ -332,19 +332,19 @@ class MixedEdge_v2(MyModule):
         param_len = self.AP_path_alpha.size()[0]
 
         # 01
-        # arr = []
-        # arr.append(np.random.uniform(0, 1))
-        # for i in range(param_len - 1):
-        #     arr.append(np.random.uniform(0, 1) * (1 - sum(arr)))
-        #
-        # probs = np.array(arr)
-        # np.random.shuffle(probs)
-        # probs = torch.from_numpy(probs)
+        arr = []
+        arr.append(np.random.uniform(0, 1))
+        for i in range(param_len - 1):
+            arr.append(np.random.uniform(0, 1) * (1 - sum(arr)))
+
+        probs = np.array(arr)
+        np.random.shuffle(probs)
+        probs = torch.from_numpy(probs)
 
         # 02
-        arr2 = list(np.random.uniform(0, 1, param_len))
-        sum_arr = sum(arr2)
-        probs = torch.from_numpy(np.array(map(lambda x: x / sum_arr, arr2)))
+        # arr2 = list(np.random.uniform(0, 1, param_len))
+        # sum_arr = sum(arr2)
+        # probs = torch.from_numpy(np.array(list(map(lambda x: x / sum_arr, arr2))))
 
         # dices = 50
         # probs = torch.from_numpy(np.random.multinomial(dices, [1/param_len]*param_len)/dices)

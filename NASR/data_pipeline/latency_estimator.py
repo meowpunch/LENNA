@@ -67,7 +67,7 @@ class LatencyEstimator:
         return: arch params & latency of one block
         """
         # init architecture parameters by uniform distribution
-        self.model.init_arch_params(init_type='uniform', init_ratio=0.0001)
+        # self.model.init_arch_params(init_type='uniform', init_ratio=0.0001)
 
         # get arch params
         arch_params_prob = list(map(
@@ -82,11 +82,11 @@ class LatencyEstimator:
 
         # self.logger.info("arch params: {}".format(arch_params))
         self.logger.info("arch params prob: \n{}".format(pd.DataFrame(arch_params_prob, columns=self.normal_ops)))
-        describe = pd.DataFrame(arch_params_prob, columns=self.normal_ops).T.describe()
+        # describe = pd.DataFrame(arch_params_prob, columns=self.normal_ops).T.describe()
         # self.logger.info("arch params prob: \n{}".format(describe))
 
         # estimate latency of blocks
-        latency = self.estimate_latency(max_reset_times=1000)
+        latency = self.estimate_latency(threshold=1, max_reset_times=1000)
 
         # TODO: functionalize
         df_list = []
@@ -98,7 +98,7 @@ class LatencyEstimator:
 
         return pd.concat(df_list, axis=1), latency
 
-    def estimate_latency(self, threshold=0.5, max_reset_times=10000):
+    def estimate_latency(self, threshold=1, max_reset_times=10000):
         """
             1. sum the 40% value of the measured latency every 50 resets of the binary gate.
             2. get avg cumulative latency(sum)

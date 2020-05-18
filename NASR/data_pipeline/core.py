@@ -16,11 +16,11 @@ class DataPipeline:
 
         self.df = None
 
-    def process(self, load, o_loop=2500, parallel=True, i_loop=100):
+    def process(self, load, o_loop=250, shadow=True, i_loop=10):
         """
         """
         i = 0
-        if parallel:
+        if shadow:
             while i < o_loop:
                 shadow = os.fork()
                 latency_list = None

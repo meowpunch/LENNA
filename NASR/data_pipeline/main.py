@@ -18,12 +18,12 @@ class Worker:
 
     def __call__(self, x):
         DataPipeline(x, self.destination).process(
-            load=self.load, o_loop=self.out_loop, parallel=True, i_loop=self.in_loop
+            load=self.load, o_loop=self.out_loop, shadow=True, i_loop=self.in_loop
         )
 
 
 def worker(index, load, destination, lock, outer_loop, inner_loop):
-    DataPipeline(index, destination, lock).process(load, o_loop=outer_loop, parallel=True, i_loop=inner_loop)
+    DataPipeline(index, destination, lock).process(load, o_loop=outer_loop, shadow=True, i_loop=inner_loop)
 
 
 def collect_df(destination, num):
@@ -99,8 +99,8 @@ def parallel(destination, outer_loop, inner_loop, p_num=4):
         proc.join()
 
 
-def single(destination):
-    DataPipeline(0, destination, None).process(load_dataset(batch_size=64), parallel=False)
+def single(destination, o_loop=250, i_loop=10):
+    DataPipeline(0, destination, None).process(load_dataset(batch_size=64), o_loop=o_loop, shadow=True, i_loop=i_loop)
 
 
 def main(arg="parallel"):
