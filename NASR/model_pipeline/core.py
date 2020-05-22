@@ -1,62 +1,52 @@
 import datetime
 
 import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_absolute_error
 
-from analysis.food_material_price.research import split_xy, customized_rmse, search_process
-from analysis.train_test_volume import train_test_timeseries
-from model.elastic_net import ElasticNetModel
-from util.build_dataset import build_master
-from util.logging import init_logger
-from util.s3_manager.manage import S3Manager
+from sklearn.model_selection import train_test_split
+
+from model.elastic_net import ElasticNetModel, ElasticNetSearcher
+from util.logger import init_logger
 
 border = '-' * 50
 
 
 class LatencyPredictModelPipeline:
 
-    def __init__(self, bucket_name: str, logger_name: str, date: str):
+    def __init__(self):
         self.logger = init_logger()
-        self.date = date
-        # TODO: now -> term of dataset
-        self.term = datetime.datetime.now().strftime("%m%Y")
+        self.date = datetime.datetime.now().strftime("%m%Y")
 
-        # s3
-        self.bucket_name = bucket_name
+    @staticmethod
+    def split_xy(df: pd.DataFrame):
+        # return df[["b_type_0", "b_type_1", "in_ch"]], df["latency"]
+        return df.drop(columns=["latency"]), df["latency"]
 
-    def build_dataset(self, pipe_data: bool):
+    def build_dataset(self):
         """
-            TODO: standard date given from data_pipeline
-        :param pipe_data: process data_pipeline or not (True/False)
-        :return: split dataset
+            load dataset and split dataset
+        :return: train Xy, test Xy
         """
-        # TODO: it will be parameterized
-        train_size, test_size = 5, 1
-
         # build dataset
-        dataset = build_master(
-            dataset="process_fmp", bucket_name=self.bucket_name,
-            date=self.date, pipe_data=pipe_data
-        )
+        dataset = pd.get_dummies(pd.read_csv("../data0520"), columns=["b_type"])
 
-        # set train, test dataset
-        train, test = train_test_timeseries(
-            df=dataset, train_size=train_size, test_size=test_size
-        )
-        self.logger.info("train/test: {train}/{test} day".format(train=train_size, test=test_size))
-        train_x, train_y = split_xy(train)
-        test_x, test_y = split_xy(test)
+        # split
+        train, test = train_test_split(dataset, stratify=dataset["in_ch"])
+        train_x, train_y = self.split_xy(train)
+        test_x, test_y = self.split_xy(test)
+
         return train_x, train_y, test_x, test_y
 
-    def section(self, p_type, pipe_data: bool):
+    def section(self, p_type):
         self.logger.info("{b}{p_type}{b}".format(b=border, p_type=p_type))
-        if p_type is "production":
+        if p_type is "tuned":
             self.tuned_process(
-                dataset=self.build_dataset(pipe_data=pipe_data)
+                dataset=self.build_dataset()
             )
-        elif p_type is "research":
-            search_process(
-                dataset=self.build_dataset(pipe_data=pipe_data),
-                bucket_name=self.bucket_name, term=self.term,
+        elif p_type is "search":
+            self.search_process(
+                dataset=self.build_dataset(), term=self.date,
                 grid_params={
                     "max_iter": [1, 5, 10],
                     "alpha": [0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100],
@@ -66,17 +56,48 @@ class LatencyPredictModelPipeline:
         else:
             raise NotImplementedError
 
-    def process(self, process_type: str, pipe_data: bool):
+    def process(self, process_type: str):
         try:
-            self.section(p_type=process_type, pipe_data=pipe_data)
+            self.section(p_type=process_type)
         except NotImplementedError:
-            self.logger.critical("'{p_type}' is not supported. choose one of ['research','production']".format(p_type=process_type), exc_info=True)
+            self.logger.critical(
+                "'{p_type}' is not supported. choose one of ['search','tuned']".format(p_type=process_type),
+                exc_info=True)
             return 1
         except Exception as e:
             # TODO: consider that it can repeat to save one more time
             self.logger.critical(e, exc_info=True)
             return 1
         return 0
+
+    def search_process(self, dataset, term, grid_params):
+        """
+            ElasticNetSearcher for research
+        :param dataset: merged 3 dataset (raw material price, terrestrial weather, marine weather)
+        :param bucket_name: s3 bucket name
+        :param term: term of researched dataset
+        :param grid_params: grid for searching best parameters
+        :return: metric (customized rmse)
+        """
+        train_x, train_y, test_x, test_y = dataset
+
+        # hyperparameter tuning
+        searcher = ElasticNetSearcher(
+            x_train=train_x, y_train=train_y, bucket_name=None,
+            score=mean_absolute_error, grid_params=grid_params
+        )
+        searcher.fit(train_x, train_y)
+
+        # predict & metric
+        pred_y = searcher.predict(X=test_x)
+        # r_test, r_pred = inverse_price(test_y), inverse_price(pred_y)
+        metric = searcher.estimate_metric(y_true=test_y, y_pred=pred_y)
+
+        # save
+        # TODO self.now -> date set term, e.g. 010420 - 120420
+        searcher.save(prefix="../result/{date}".format(date=term))
+        searcher.save_params(key="food_material_price_predict_model/research/tuned_params.pkl")
+        return metric
 
     def tuned_process(self, dataset):
         """
@@ -88,11 +109,8 @@ class LatencyPredictModelPipeline:
 
         # init model & fit
         model = ElasticNetModel(
-            bucket_name=self.bucket_name,
             x_train=train_x, y_train=train_y,
-            params=S3Manager(bucket_name=self.bucket_name).load_dump(
-                key="food_material_price_predict_model/research/tuned_params.pkl"
-            )
+            params=None
         )
         model.fit()
 
@@ -106,5 +124,5 @@ class LatencyPredictModelPipeline:
 
         # save
         # TODO self.now -> date set term, e.g. 010420 - 120420
-        model.save(prefix="food_material_price_predict_model/{term}".format(term=self.term))
+        model.save(prefix="food_material_price_predict_model/{term}".format(term=self.date))
         return metric

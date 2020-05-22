@@ -7,9 +7,7 @@ from sklearn.linear_model import ElasticNet
 from sklearn.metrics import make_scorer, mean_squared_error
 from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
 
-from analysis.hit_ratio_error import hit_ratio_error
-from util.logging import init_logger
-from util.s3_manager.manage import S3Manager
+from util.logger import init_logger
 from util.visualize import draw_hist
 
 
@@ -23,7 +21,7 @@ class ElasticNetModel:
         self.logger = init_logger()
 
         # s3
-        self.s3_manager = S3Manager(bucket_name=bucket_name)
+        self.s3_manager = None
 
         if params is None:
             self.model = ElasticNet()
@@ -117,7 +115,7 @@ class ElasticNetSearcher(GridSearchCV):
         self.metric = None
 
         # s3
-        self.s3_manager = S3Manager(bucket_name=bucket_name)
+        self.s3_manager = None
 
         # logger
         self.logger = init_logger()
@@ -125,9 +123,7 @@ class ElasticNetSearcher(GridSearchCV):
         super().__init__(
             estimator=ElasticNet(),
             param_grid=grid_params,
-            scoring=make_scorer(self.scorer, greater_is_better=False),
-            # we have to know the relationship before and after obviously, so n_splits: 2
-            cv=TimeSeriesSplit(n_splits=2).split(self.x_train)
+            scoring=make_scorer(self.scorer, greater_is_better=False)
         )
 
     def fit(self, X=None, y=None, groups=None, **fit_params):
@@ -161,28 +157,22 @@ class ElasticNetSearcher(GridSearchCV):
 
     def save_params(self, key):
         self.logger.info("tuned params: {params}".format(params=self.best_params_))
-        self.s3_manager.save_dump(x=self.best_params_, key=key)
+        # self.s3_manager.save_dump(x=self.best_params_, key=key)
 
     def save_coef(self, key):
         self.logger.info("beta_coef:\n{coef}".format(coef=self.coef_df))
-        self.s3_manager.save_df_to_csv(self.coef_df, key=key)
+        self.coef_df.to_csv("coef".format(key))
 
     def save_metric(self, key):
-        self.logger.info("customized RMSE is {metric}".format(metric=self.metric))
-        self.s3_manager.save_dump(x=self.metric, key=key)
+        self.logger.info("metric is {metric}".format(metric=self.metric))
+        # self.s3_manager.save_dump(x=self.metric, key=key)
 
     def save_model(self, key):
         # save best elastic net
-        self.s3_manager.save_dump(self.best_estimator_, key=key)
+        # self.s3_manager.save_dump(self.best_estimator_, key=key)
+        pass
 
     def save_error_distribution(self, prefix):
         draw_hist(self.error)
-        self.s3_manager.save_plt_to_png(
-            key="{prefix}/image/error_distribution.png".format(prefix=prefix)
-        )
-
-        ratio = hit_ratio_error(self.error)
-        self.s3_manager.save_plt_to_png(
-            key="{prefix}/image/hit_ratio_error.png".format(prefix=prefix)
-        )
-        return ratio
+        # self.s3_manager.save_plt_to_png(
+        #     key="{prefix}/image/error_distribution.png".format(prefix=prefix))
