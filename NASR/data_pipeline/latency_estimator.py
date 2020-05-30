@@ -17,25 +17,7 @@ class LatencyEstimator:
         This class will estimate latency and return latency & arch params
     """
 
-    def __init__(self, block_type, input_channel, num_layers, dataset, gpu_id=0, parallel=False):
-
-        self.normal_ops = [
-            '3x3_Conv', '5x5_Conv',
-            '3x3_ConvDW', '5x5_ConvDW',
-            '3x3_dConv', '5x5_dConv',
-            '3x3_dConvDW', '5x5_dConvDW',
-            '3x3_maxpool', '3x3_avgpool',
-            # 'Zero',
-            'Identity',
-        ]
-        self.reduction_ops = [
-            '3x3_Conv', '5x5_Conv',
-            '3x3_ConvDW', '5x5_ConvDW',
-            '3x3_dConv', '5x5_dConv',
-            '3x3_dConvDW', '5x5_dConvDW',
-            '2x2_maxpool', '2x2_avgpool',
-        ]
-
+    def __init__(self, model, dataset, gpu_id=0, parallel=False):
         self.logger = init_logger()
 
         # dataset
@@ -43,11 +25,7 @@ class LatencyEstimator:
         self.test_loader = dataset
 
         # model
-        self.b_type = block_type
-        self.in_ch = input_channel
-        self.model = LennaNet(num_blocks=[1], num_layers=num_layers, normal_ops=self.normal_ops,
-                              reduction_ops=self.reduction_ops, block_type=block_type,
-                              input_channel=input_channel, n_classes=10)  # for cifar10
+        self.model = model
 
         # allocate 4 processes to 4 gpu respectively
         device = 'cuda:{}'.format(gpu_id) if torch.cuda.is_available() else 'cuda'
@@ -81,7 +59,7 @@ class LatencyEstimator:
         # ))
 
         # self.logger.info("arch params: {}".format(arch_params))
-        self.logger.info("arch params prob: \n{}".format(pd.DataFrame(arch_params_prob, columns=self.normal_ops)))
+        self.logger.info("arch params prob: \n{}".format(pd.DataFrame(arch_params_prob, columns=self.model.normal_ops)))
         # describe = pd.DataFrame(arch_params_prob, columns=self.normal_ops).T.describe()
         # self.logger.info("arch params prob: \n{}".format(describe))
 
@@ -94,7 +72,7 @@ class LatencyEstimator:
             # fillna with zero
             if len(param) is 10:
                 param.append(0)
-            df_list.append(pd.DataFrame(data=[param], columns=["{}_{}".format(op, str(idx)) for op in self.normal_ops]))
+            df_list.append(pd.DataFrame(data=[param], columns=["{}_{}".format(op, str(idx)) for op in self.model.normal_ops]))
 
         return pd.concat(df_list, axis=1), latency
 
@@ -112,11 +90,11 @@ class LatencyEstimator:
         lat_sum, hit_num, pre_avg, cur_avg = 0, 0, 0, 0
         for i in range(max_reset_times):
             self.model.reset_binary_gates()
-            self.logger.info("**{} times reset binary gate (b_type/in_ch: {}/{})**".format(i, self.b_type, self.in_ch))
+            self.logger.info("**{} times reset binary gate (b_type/in_ch: {}/{})**".format(i, self.model.block_type, self.model.input_channel))
 
             # the 40% value
             latency_df = self.one_block_latency(n_iter=20)
-            self.logger.info("one block latency describe: {}".format(latency_df.describe()))
+            # elf.logger.info("one block latency describe: {}".format(latency_df.describe()))
             new_lat = latency_df.quantile(q=0.4)
             self.logger.info("newly estimated latency: {}".format(new_lat))
             lat_sum = lat_sum + new_lat

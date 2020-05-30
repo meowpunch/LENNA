@@ -13,9 +13,13 @@ class LennaNet(DartsRecastingNet):
                  mixedge_ver=2, threshold=0.5,
                  increase_option=False, increase_term=10,
                  bn_param=(0.1, 1e-3), dropout_rate=0):
+        self.num_layers = num_layers
+        self.input_channel = input_channel
+        self.block_type = block_type
+        self.normal_ops = normal_ops
+
         self._redundant_modules = None
         self._unused_modules = None
-        self.num_layers = num_layers
         self.mixedge_ver = mixedge_ver
         self.threshold = threshold
         self.increase_option = increase_option

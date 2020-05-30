@@ -2,6 +2,7 @@ import os
 import sys
 
 from data_pipeline.data_generator import DataGenerator
+from data_pipeline.lenna_net_sub import LennaNet
 from util.logger import init_logger
 
 
@@ -12,21 +13,41 @@ class DataPipeline:
         self.lock = lock
 
         # constant
+        self.normal_ops = [
+            '3x3_Conv', '5x5_Conv',
+            '3x3_ConvDW', '5x5_ConvDW',
+            '3x3_dConv', '5x5_dConv',
+            '3x3_dConvDW', '5x5_dConvDW',
+            '3x3_maxpool', '3x3_avgpool',
+            # 'Zero',
+            'Identity',
+        ]
+        self.reduction_ops = [
+            '3x3_Conv', '5x5_Conv',
+            '3x3_ConvDW', '5x5_ConvDW',
+            '3x3_dConv', '5x5_dConv',
+            '3x3_dConvDW', '5x5_dConvDW',
+            '2x2_maxpool', '2x2_avgpool',
+        ]
+
         self.destination = destination  # + str(idx)
 
         self.df = None
 
-    def process(self, load, o_loop=250, shadow=True, i_loop=10):
+    def process(self, load, o_loop=250, shadow=True, i_loop=10, b_type=None, in_ch=None):
         """
         """
         i = 0
+        model = LennaNet(num_blocks=[1], num_layers=5, normal_ops=self.normal_ops,
+                         reduction_ops=self.reduction_ops, block_type=b_type,
+                         input_channel=in_ch, n_classes=10)  # for cifar10
         if shadow:
             while i < o_loop:
                 shadow = os.fork()
                 latency_list = None
                 if shadow == 0:
                     dg = DataGenerator(sub_pid=self.sub_pid)
-                    self.df = dg.process(load=load, num_rows=i_loop)
+                    self.df = dg.process(load=load, model=model, num_rows=i_loop)
 
                     self.save_to_csv()
 

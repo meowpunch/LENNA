@@ -99,8 +99,10 @@ def parallel(destination, outer_loop, inner_loop, p_num=4):
         proc.join()
 
 
-def single(destination, o_loop=250, i_loop=10):
-    DataPipeline(0, destination, None).process(load_dataset(batch_size=64), o_loop=o_loop, shadow=True, i_loop=i_loop)
+def single(destination, o_loop=250, i_loop=10, b_type=None, in_ch=None):
+    DataPipeline(0, destination, None).process(
+        load_dataset(batch_size=64), o_loop=o_loop, shadow=True, i_loop=i_loop, b_type=b_type,in_ch=in_ch
+    )
 
 
 def main(arg="parallel"):

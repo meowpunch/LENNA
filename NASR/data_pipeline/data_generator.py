@@ -8,7 +8,7 @@ from util.logger import init_logger
 
 
 class DataGenerator:
-    def __init__(self, sub_pid=0, g_type="random"):
+    def __init__(self, sub_pid=0, g_type="random", b_type=None, in_ch=None):
         """
             block type: 0 -> reduction , 1-> normal
             input_channel: 1~1000
@@ -17,45 +17,51 @@ class DataGenerator:
         self.logger = init_logger()
         self.sub_pid = sub_pid
 
-        # X
-        np.random.seed()
-        self.block_type = np.random.randint(0, 2)
-        self.input_channel = np.random.randint(1, 1000)
-        self.num_layers = 5
-        self.arch_params = None
+        # # X
+        # np.random.seed()
+        # if b_type is None:
+        #     self.block_type = np.random.randint(0, 2)
+        # else:
+        #     self.block_type = b_type
+        # # 32 64 128 256
+        # if in_ch is None:
+        #     self.input_channel = np.random.randint(1, 1000)
+        # else:
+        #     self.input_channel = in_ch
+        #
+        # self.num_layers = 5
+        # self.arch_params = None
+        #
+        # self.logger.info("init b_type, in_ch: {}, {} ".format(
+        #     self.block_type, self.input_channel
+        # ))
+        #
+        # # y
+        # self.latency = None
 
-        self.logger.info("init b_type, in_ch: {}, {} ".format(
-            self.block_type, self.input_channel
-        ))
+    # @property
+    # def serialize_x(self):
+    #     if self.arch_params is None:
+    #         raise NotImplementedError
+    #     else:
+    #         return np.append(np.array([
+    #             self.block_type, self.input_channel,  # self.num_layers,
+    #         ]), reduce(
+    #             lambda a, b: np.append(a, b), self.arch_params
+    #         ))
 
-        # y
-        self.latency = None
-
-    @property
-    def serialize_x(self):
-        if self.arch_params is None:
-            raise NotImplementedError
-        else:
-            return np.append(np.array([
-                self.block_type, self.input_channel,  # self.num_layers,
-            ]), reduce(
-                lambda a, b: np.append(a, b), self.arch_params
-            ))
-
-    def process(self, load, num_rows=10):
+    def process(self, load, model, num_rows=10):
         """
         return: X, y, latency_list
         """
         # get latency and arch_params (randomly chosen in normal distribution)
         le = LatencyEstimator(
-            block_type=self.block_type,
-            input_channel=self.input_channel,
-            num_layers=self.num_layers,
+            model=model,
             gpu_id=self.sub_pid,
             dataset=load
         )
 
-        df_0 = pd.DataFrame([[self.block_type, self.input_channel]], columns=["b_type", "in_ch"])
+        df_0 = pd.DataFrame([[model.block_type, model.input_channel]], columns=["b_type", "in_ch"])
 
         def one_row(x):
             arch_params, latency = le.process(
