@@ -14,7 +14,7 @@ from util.visualize import draw_hist
 
 class MLPRegressorModel:
     """
-        ElasticNet
+        MLPRegressor
     """
 
     def __init__(self, bucket_name: str, x_train, y_train, params=None):
