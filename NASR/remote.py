@@ -16,10 +16,10 @@ def main(argv):
     else:
         destination = argv[1]
 
-    print(type(argv[2]))
+    print("b_type: {}, in_ch: {}".format(argv[2], argv[3]))
     # total rows: outer * inner * p_num
     # parallel(destination=destination, outer_loop=250, inner_loop=10, p_num=4)
-    single(destination=destination, o_loop=2, i_loop=2, b_type=int(argv[2]), in_ch=int(argv[3]))
+    single(destination=destination, o_loop=40, i_loop=50, b_type=int(argv[2]), in_ch=int(argv[3]))
 
 
 if __name__ == '__main__':
