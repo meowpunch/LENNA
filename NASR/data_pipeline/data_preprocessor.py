@@ -36,13 +36,16 @@ class PreProcessor:
         :return standard->minmax input channel, robust->minmax prob, minmax latency
         '''
         material = self.dataset
-        prob = material.columns.difference(['b_type_0', 'b_type_1', 'latency', 'in_ch'])
+        prob = material.columns.difference(['b_type', 'latency', 'in_ch'], sort = False)
+        in_ch_lin = make_pipeline(RobustScaler())
+        prob_lin = make_pipeline(RobustScaler())
+        latency_lin = make_pipeline(RobustScaler())
         preprocess = make_column_transformer(
-            (make_pipeline(StandardScaler(), MinMaxScaler()), ['in_ch']),
-            (make_pipeline(RobustScaler(), MinMaxScaler()), prob),
-            (MinMaxScaler(), ['latency']),
+            (in_ch_lin, ['in_ch']),
+            (prob_lin, prob),
+            (latency_lin, ['latency'])
         )
-        fitted = pd.DataFrame(preprocess.fit_transform(material), columns=material.columns[0:167])
-        fitted = pd.concat([fitted, material.iloc[:, 167:169]], axis=1)
+        fitted = pd.DataFrame(preprocess.fit_transform(material), columns=material.columns[1:168])
+        fitted = pd.concat([material.iloc[:, :1], fitted], axis=1)
 
         return fitted
