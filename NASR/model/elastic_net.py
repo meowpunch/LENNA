@@ -1,6 +1,7 @@
 import tempfile
 
 import pandas as pd
+import matplotlib.pyplot as plt
 from joblib import dump
 import numpy as np
 from sklearn.linear_model import ElasticNet
@@ -39,9 +40,9 @@ class ElasticNetModel:
     def predict(self, X):
         return self.model.predict(X=X)
 
-    def estimate_metric(self, scorer, y, predictions):
-        self.error = y - predictions
-        self.metric = scorer(y_true=y, y_pred=predictions)
+    def estimate_metric(self, scorer, y_true, y_pred):
+        self.error = y_true - y_pred
+        self.metric = scorer(y_true=y_true, y_pred=y_pred)
         return self.metric
 
     def score(self):
@@ -141,6 +142,14 @@ class ElasticNetSearcher(GridSearchCV):
 
     def estimate_metric(self, y_true, y_pred):
         self.error = pd.Series(y_true - y_pred).rename("error")
+        true = pd.Series(y_true)
+
+        plt.figure()
+        err_ratio = (abs(self.error) / true) * 100
+        # err_ratio.plot()
+        plt.scatter(x=true, y=err_ratio)
+        plt.show()
+
         self.metric = self.scorer(y_true=y_true, y_pred=y_pred)
         return self.metric
 
