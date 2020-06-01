@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer, make_column_transformer
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler, RobustScaler, PowerTransformer, QuantileTransformer
 
 class PreProcessor:
     def __init__(self):
@@ -37,9 +37,12 @@ class PreProcessor:
         '''
         material = self.dataset
         prob = material.columns.difference(['b_type', 'latency', 'in_ch'], sort = False)
-        in_ch_lin = make_pipeline(RobustScaler())
-        prob_lin = make_pipeline(RobustScaler())
-        latency_lin = make_pipeline(RobustScaler())
+        in_ch_lin = make_pipeline(StandardScaler(), \
+                                  QuantileTransformer(n_quantiles=100, output_distribution='normal'))
+        prob_lin = make_pipeline(MaxAbsScaler(), \
+                                 QuantileTransformer(n_quantiles=1000, output_distribution='normal'))
+        latency_lin = make_pipeline(RobustScaler(), \
+                                    QuantileTransformer(n_quantiles=1000, output_distribution='normal'))
         preprocess = make_column_transformer(
             (in_ch_lin, ['in_ch']),
             (prob_lin, prob),
