@@ -58,15 +58,14 @@ class LatencyPredictModelPipeline:
         elif p_type is "search":
             self.search_process(
                 dataset=PreProcessor().process(),  # self.build_dataset(),  # PreProcessor().process(),
-                term=self.date,
                 # grid_params={
                 #     "max_iter": [1, 5, 10],
                 #     "alpha": [0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100],
                 #     "l1_ratio": np.arange(0.0, 1.0, 0.1)
                 # }
-                grid_params={"hidden_layer_sizes": [(1,), (50,)],
+                grid_params={"hidden_layer_sizes": [(1,), (50,), (64,), (100,), (128,), (256,), (512, )],
                              "activation": ["identity", "logistic", "tanh", "relu"], "solver": ["lbfgs", "sgd", "adam"],
-                             "alpha": [0.00005, 0.0005]}
+                             "alpha": [0.000001, 0.00005, 0.00001, 0.0005, 0.0001]}
             )
         else:
             raise NotImplementedError
@@ -95,7 +94,7 @@ class LatencyPredictModelPipeline:
 
         return robust.inverse_transform(quantile.inverse_transform(X)).reshape(-1)
 
-    def search_process(self, dataset, term, grid_params):
+    def search_process(self, dataset, grid_params):
         """
             ElasticNetSearcher for research
         :param dataset: merged 3 dataset (raw material price, terrestrial weather, marine weather)
@@ -121,7 +120,7 @@ class LatencyPredictModelPipeline:
 
         # save
         # TODO self.now -> date set term, e.g. 010420 - 120420
-        searcher.save(prefix="../result/{date}".format(date=term))
+        searcher.save(prefix="../search/{date}/".format(date=self.date))
         # searcher.save_params(key="food_material_price_predict_model/research/tuned_params.pkl")
         return metric
 
@@ -151,5 +150,5 @@ class LatencyPredictModelPipeline:
 
         # save
         # TODO self.now -> date set term, e.g. 010420 - 120420
-        model.save(prefix="food_material_price_predict_model/{term}".format(term=self.date))
+        model.save(prefix="../search/{term}/".format(term=self.date))
         return metric

@@ -1,10 +1,8 @@
-import tempfile
-
+import matplotlib.pyplot as plt
 import pandas as pd
 from joblib import dump
-import numpy as np
-from sklearn.metrics import make_scorer, mean_squared_error
-from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import GridSearchCV
 from sklearn.neural_network import MLPRegressor
 
 from util.logger import init_logger
@@ -16,7 +14,7 @@ class MLPRegressorModel:
         MLPRegressor
     """
 
-    def __init__(self, bucket_name: str, x_train, y_train, params=None):
+    def __init__(self, bucket_name, x_train, y_train, params=None):
         # logger
         self.logger = init_logger()
 
@@ -52,12 +50,12 @@ class MLPRegressorModel:
             save beta coef, metric, distribution, model
         :param prefix: dir
         """
-        self.save_metric(key="{prefix}/metric.pkl".format(prefix=prefix))
+        self.save_metric(key="{prefix}/mlp/metric.pkl".format(prefix=prefix))
         self.save_error_distribution(prefix=prefix)
-        self.save_model(key="{prefix}/model.pkl".format(prefix=prefix))
+        self.save_model(key="{prefix}/mlp/model.pkl".format(prefix=prefix))
 
     def save_metric(self, key):
-        self.logger.info("customized RMSE is {metric}".format(metric=self.metric))
+        self.logger.info("metric is {metric}".format(metric=self.metric))
         # self.s3_manager.save_dump(x=self.metric, key=key)
 
     def save_model(self, key):
@@ -81,11 +79,7 @@ class MLPRegressorSearcher(GridSearchCV):
             grid_params=None, score=mean_squared_error
     ):
         if grid_params is None:
-            grid_params = {
-                "max_iter": [1, 5, 10],
-                "alpha": [0, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100],
-                "l1_ratio": np.arange(0.0, 1.0, 0.1)
-            }
+            raise ValueError("grid params are needed")
 
         self.x_train = x_train
         self.y_train = y_train
@@ -101,7 +95,7 @@ class MLPRegressorSearcher(GridSearchCV):
         self.logger = init_logger()
 
         super().__init__(
-            estimator=MLPRegressor(),
+            estimator=MLPRegressor(learning_rate='adaptive'),
             param_grid=grid_params,
             scoring='neg_mean_absolute_error',
         )
@@ -111,6 +105,14 @@ class MLPRegressorSearcher(GridSearchCV):
 
     def estimate_metric(self, y_true, y_pred):
         self.error = pd.Series(y_true - y_pred).rename("error")
+        true = pd.Series(y_true)
+
+        plt.figure()
+        err_ratio = (abs(self.error) / true) * 100
+        # err_ratio.plot()
+        plt.scatter(x=true, y=err_ratio)
+        plt.show()
+
         self.metric = self.scorer(y_true=y_true, y_pred=y_pred)
         return self.metric
 
@@ -119,24 +121,23 @@ class MLPRegressorSearcher(GridSearchCV):
             save tuned params, beta coef, metric, distribution, model
         :param prefix: dir
         """
-        self.save_params(key="{prefix}/params.pkl".format(prefix=prefix))
-        self.save_metric(key="{prefix}/metric.pkl".format(prefix=prefix))
+        self.save_params(key="{prefix}/mlp/best_params.pkl".format(prefix=prefix))
+        self.save_metric(key="{prefix}/mlp/metric.pkl".format(prefix=prefix))
         self.save_error_distribution(prefix=prefix)
-        self.save_model(key="{prefix}/model.pkl".format(prefix=prefix))
+        # self.save_model(key="{prefix}/mlp/model.pkl".format(prefix=prefix))
 
     def save_params(self, key):
         self.logger.info("tuned params: {params}".format(params=self.best_params_))
-        # self.s3_manager.save_dump(x=self.best_params_, key=key)
+        dump(self.best_params_, key)
 
     def save_metric(self, key):
         self.logger.info("metric is {metric}".format(metric=self.metric))
         # self.s3_manager.save_dump(x=self.metric, key=key)
 
     def save_model(self, key):
-        dump(self.best_estimator_, "MLPmodel.pkl")
+        dump(self.best_estimator_, key)
         # save best elastic net
         # self.s3_manager.save_dump(self.best_estimator_, key=key)
-        pass
 
     def save_error_distribution(self, prefix):
         draw_hist(self.error)
