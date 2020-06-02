@@ -49,30 +49,24 @@ class LatencyPredictModelPipeline:
 
         return train_x, train_y, test_x, test_y
 
-    def section(self, p_type):
-        self.logger.info("{b}{p_type}{b}".format(b=border, p_type=p_type))
+    def section(self, p_type, m_type, param):
+        self.logger.info("{b} {p}_{m} {b}".format(b=border, p=p_type, m=m_type))
         if p_type is "tuned":
             self.tuned_process(
-                dataset=PreProcessor().process()  # self.build_dataset()  # PreProcessor().process()
+                dataset=PreProcessor().process(),  # self.build_dataset()  # PreProcessor().process()
+                param=param
             )
         elif p_type is "search":
             self.search_process(
                 dataset=PreProcessor().process(),  # self.build_dataset(),  # PreProcessor().process(),
-                # grid_params={
-                #     "max_iter": [1, 5, 10],
-                #     "alpha": [0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100],
-                #     "l1_ratio": np.arange(0.0, 1.0, 0.1)
-                # }
-                grid_params={"hidden_layer_sizes": [(1,), (50,), (64,), (100,), (128,), (256,), (512, )],
-                             "activation": ["identity", "logistic", "tanh", "relu"], "solver": ["lbfgs", "sgd", "adam"],
-                             "alpha": [0.000001, 0.00005, 0.00001, 0.0005, 0.0001]}
+                grid_params=param
             )
         else:
             raise NotImplementedError
 
-    def process(self, process_type: str):
+    def process(self, process_type: str, model_type: str, param=None):
         try:
-            self.section(p_type=process_type)
+            self.section(p_type=process_type, m_type=model_type, param=param)
         except NotImplementedError:
             self.logger.critical(
                 "'{p_type}' is not supported. choose one of ['search','tuned']".format(p_type=process_type),
@@ -120,11 +114,11 @@ class LatencyPredictModelPipeline:
 
         # save
         # TODO self.now -> date set term, e.g. 010420 - 120420
-        searcher.save(prefix="../search/{date}/".format(date=self.date))
+        searcher.save(prefix="".format(date=self.date))
         # searcher.save_params(key="food_material_price_predict_model/research/tuned_params.pkl")
         return metric
 
-    def tuned_process(self, dataset):
+    def tuned_process(self, dataset, param):
         """
             tuned ElasticNet for production
         :param dataset: merged 3 dataset (raw material price, terrestrial weather, marine weather)
@@ -136,7 +130,7 @@ class LatencyPredictModelPipeline:
         model = MLPRegressorModel(
             bucket_name=None,
             x_train=train_x, y_train=train_y,
-            params=None
+            params=param
         )
         model.fit()
 
@@ -145,10 +139,11 @@ class LatencyPredictModelPipeline:
 
         # predict & metric
         pred_y = model.predict(X=test_x)
-        # r_test, r_pred = inverse_price(test_y), inverse_price(pred_y)
-        metric = model.estimate_metric(scorer=mean_absolute_error, y_true=test_y, y_pred=pred_y)
+        r_test, r_pred = self.inverse_latency(test_y), self.inverse_latency(pred_y)
+        metric = model.estimate_metric(scorer=mean_absolute_error, y_true=r_test, y_pred=r_pred)
+        # metric = model.estimate_metric(scorer=mean_absolute_error, y_true=test_y, y_pred=pred_y)
 
         # save
         # TODO self.now -> date set term, e.g. 010420 - 120420
-        model.save(prefix="../search/{term}/".format(term=self.date))
+        model.save(prefix="".format(term=self.date))
         return metric

@@ -38,7 +38,15 @@ class MLPRegressorModel:
         return self.model.predict(X=X)
 
     def estimate_metric(self, scorer, y_true, y_pred):
-        self.error = y_true - y_pred
+        self.error = pd.Series(y_true - y_pred).rename("error")
+        true = pd.Series(y_true)
+
+        plt.figure()
+        err_ratio = (abs(self.error) / true) * 100
+        # err_ratio.plot()
+        plt.scatter(x=true, y=err_ratio)
+        plt.show()
+
         self.metric = scorer(y_true=y_true, y_pred=y_pred)
         return self.metric
 
@@ -50,9 +58,9 @@ class MLPRegressorModel:
             save beta coef, metric, distribution, model
         :param prefix: dir
         """
-        self.save_metric(key="{prefix}/mlp/metric.pkl".format(prefix=prefix))
+        self.save_metric(key="mlp_metric.pkl".format(prefix=prefix))
         self.save_error_distribution(prefix=prefix)
-        self.save_model(key="{prefix}/mlp/model.pkl".format(prefix=prefix))
+        self.save_model(key="mlp_model.pkl".format(prefix=prefix))
 
     def save_metric(self, key):
         self.logger.info("metric is {metric}".format(metric=self.metric))
@@ -121,8 +129,8 @@ class MLPRegressorSearcher(GridSearchCV):
             save tuned params, beta coef, metric, distribution, model
         :param prefix: dir
         """
-        self.save_params(key="{prefix}/mlp/best_params.pkl".format(prefix=prefix))
-        self.save_metric(key="{prefix}/mlp/metric.pkl".format(prefix=prefix))
+        self.save_params(key="mlp_best_params.pkl".format(prefix=prefix))
+        self.save_metric(key="mlp_metric.pkl".format(prefix=prefix))
         self.save_error_distribution(prefix=prefix)
         # self.save_model(key="{prefix}/mlp/model.pkl".format(prefix=prefix))
 
