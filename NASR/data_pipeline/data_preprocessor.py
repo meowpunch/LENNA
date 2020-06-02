@@ -37,7 +37,7 @@ class PreProcessor:
 
     @staticmethod
     def save(x, filename):
-        dump(x, "../{}".format(filename))
+        dump(x, "{}".format(filename))
 
     def latency_preprocess(self, latency):
         robust, quantile = RobustScaler(), QuantileTransformer(n_quantiles=1000,
@@ -77,5 +77,4 @@ class PreProcessor:
         fitted = pd.DataFrame(preprocess.fit_transform(material), columns=material.columns[0:-3])
         fitted = pd.concat([material[["b_type_0", "b_type_1"]], fitted, latency], axis=1)
 
-        print(fitted.head(3))
-        return fitted[fitted.b_type_1 == 1].drop(columns=["b_type_0", "b_type_1"])
+        return fitted  # [fitted.b_type_1 == 1].drop(columns=["b_type_0", "b_type_1"])

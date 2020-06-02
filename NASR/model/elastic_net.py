@@ -40,14 +40,6 @@ class ElasticNetModel:
     def predict(self, X):
         return self.model.predict(X=X)
 
-    def estimate_metric(self, scorer, y_true, y_pred):
-        self.error = y_true - y_pred
-        self.metric = scorer(y_true=y_true, y_pred=y_pred)
-        return self.metric
-
-    def score(self):
-        return self.model.score(self.x_train, self.y_train)
-
     @property
     def coef_df(self):
         """
@@ -58,38 +50,52 @@ class ElasticNetModel:
             index=self.x_train.columns.tolist() + ["intercept"],
         ).rename("beta").reset_index().rename(columns={"index": "column"})
 
+    def estimate_metric(self, scorer, y_true, y_pred):
+        self.error = pd.Series(y_true - y_pred).rename("error")
+        true = pd.Series(y_true)
+
+        plt.figure()
+        err_ratio = (abs(self.error) / true) * 100
+        # err_ratio.plot()
+        plt.scatter(x=true, y=err_ratio)
+        plt.show()
+
+        self.metric = scorer(y_true=y_true, y_pred=y_pred)
+        return self.metric
+
     def save(self, prefix):
         """
-            save beta coef, metric, distribution, model
+            save tuned params, beta coef, metric, distribution, model
         :param prefix: dir
         """
-        self.save_coef(key="{prefix}/beta.csv".format(prefix=prefix))
+        self.save_coef(key="{prefix}/beta.pkl".format(prefix=prefix))
         self.save_metric(key="{prefix}/metric.pkl".format(prefix=prefix))
         self.save_error_distribution(prefix=prefix)
         self.save_model(key="{prefix}/model.pkl".format(prefix=prefix))
 
     def save_coef(self, key):
-        self.logger.info("coef:\n{coef}".format(coef=self.coef_df))
-        self.s3_manager.save_df_to_csv(self.coef_df, key=key)
+        self.logger.info("beta_coef:\n{coef}".format(coef=self.coef_df))
+        self.coef_df.to_csv("coef".format(key))
 
     def save_metric(self, key):
-        self.logger.info("customized RMSE is {metric}".format(metric=self.metric))
-        self.s3_manager.save_dump(x=self.metric, key=key)
+        self.logger.info("metric is {metric}".format(metric=self.metric))
+        # self.s3_manager.save_dump(x=self.metric, key=key)
 
     def save_model(self, key):
-        self.s3_manager.save_dump(self.model, key=key)
+        # save best elastic net
+        # self.s3_manager.save_dump(self.best_estimator_, key=key)
+        pass
 
     def save_error_distribution(self, prefix):
         draw_hist(self.error)
-        self.s3_manager.save_plt_to_png(
-            key="{prefix}/image/error_distribution.png".format(prefix=prefix)
-        )
+        # self.s3_manager.save_plt_to_png(
+        #     key="{prefix}/image/error_distribution.png".format(prefix=prefix))
 
-        ratio = hit_ratio_error(self.error)
-        self.s3_manager.save_plt_to_png(
-            key="{prefix}/image/hit_ratio_error.png".format(prefix=prefix)
-        )
-        return ratio
+    # ratio = hit_ratio_error(self.error)
+        # self.s3_manager.save_plt_to_png(
+        #     key="{prefix}/image/hit_ratio_error.png".format(prefix=prefix)
+        # )
+        # return ratio
 
 
 class ElasticNetSearcher(GridSearchCV):
