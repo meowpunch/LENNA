@@ -17,9 +17,11 @@ border = '-' * 50
 
 class LatencyPredictModelPipeline:
 
-    def __init__(self):
+    def __init__(self, dataset_name):
         self.logger = init_logger()
         self.date = datetime.datetime.now().strftime("%m%Y")
+
+        self.dataset = PreProcessor(filename=dataset_name).process()  # self.build_dataset(filename=dataset_name)
 
     @staticmethod
     def split_xy(df: pd.DataFrame):
@@ -33,13 +35,13 @@ class LatencyPredictModelPipeline:
         indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
         return df[indices_to_keep].astype(np.float64)
 
-    def build_dataset(self):
+    def build_dataset(self, filename="../data0520"):
         """
             load dataset and split dataset
         :return: train Xy, test Xy
         """
         # build dataset
-        dataset = self.clean_dataset(pd.get_dummies(pd.read_csv("../data0520"), columns=["b_type"]))
+        dataset = self.clean_dataset(pd.get_dummies(pd.read_csv(filename), columns=["b_type"]))
 
         # split
         # train, test = train_test_split(dataset[dataset.in_ch == 32].drop(columns=["in_ch"]))
@@ -53,12 +55,12 @@ class LatencyPredictModelPipeline:
         self.logger.info("{b} {p}_{m} {b}".format(b=border, p=p_type, m=m_type))
         if p_type is "tuned":
             self.tuned_process(
-                dataset=PreProcessor().process(),  # self.build_dataset()  # PreProcessor().process()
+                dataset=self.dataset,  # self.build_dataset()  # PreProcessor().process()
                 param=param
             )
         elif p_type is "search":
             self.search_process(
-                dataset=PreProcessor().process(),  # self.build_dataset(),  # PreProcessor().process(),
+                dataset=self.dataset,  # self.build_dataset(),  # PreProcessor().process(),
                 grid_params=param
             )
         else:
@@ -80,7 +82,7 @@ class LatencyPredictModelPipeline:
 
     @staticmethod
     def inverse_latency(X):
-        robust, quantile = load("../robust.pkl"), load("../quantile.pkl")
+        robust, quantile = load("robust.pkl"), load("quantile.pkl")
         if isinstance(X, pd.Series):
             X = X.values.reshape(-1, 1)
         else:
