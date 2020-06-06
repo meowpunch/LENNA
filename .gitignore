@@ -3,6 +3,7 @@ __pycache__
 
 *.pth
 *.log
+*.csv
 
 predict-latency/data-generator/data
 result/

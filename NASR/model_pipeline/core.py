@@ -35,7 +35,7 @@ class LatencyPredictModelPipeline:
         indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
         return df[indices_to_keep].astype(np.float64)
 
-    def build_dataset(self, filename="../data0520"):
+    def build_dataset(self, filename="../data0520.csv"):
         """
             load dataset and split dataset
         :return: train Xy, test Xy
