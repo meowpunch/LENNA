@@ -4,6 +4,7 @@ __pycache__
 *.pth
 *.log
 *.csv
+*.zip
 
 predict-latency/data-generator/data
 result/
