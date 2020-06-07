@@ -40,6 +40,7 @@ def inverse_latency(X):
 n_folds = 10
 def rmsle_cv(model, X, Y):
     kf = KFold(n_folds, shuffle=True, random_state=42).get_n_splits()
+    # 전처리도 여기에 parameter로 넣으면 되고 fit, predict 모두 처리하는 게 아래 줄.
     rmsle = np.sqrt(-cross_val_score(model, X, Y, scoring="neg_mean_squared_error", cv = kf))
     return rmsle
 
