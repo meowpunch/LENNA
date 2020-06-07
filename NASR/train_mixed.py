@@ -40,6 +40,7 @@ def inverse_latency(X):
 n_folds = 10
 def rmsle_cv(model, X, Y):
     kf = KFold(n_folds, shuffle=True, random_state=42).get_n_splits()
+    # 전처리도 여기에 parameter로 넣으면 되고 fit, predict 모두 처리하는 게 아래 줄.
     rmsle = np.sqrt(-cross_val_score(model, X, Y, scoring="neg_mean_squared_error", cv = kf))
     return rmsle
 
@@ -98,8 +99,8 @@ model_svr = grid_svr.best_estimator_
 
 # ------------ Random Forest Regressor with GridSearch
 param_grid = [
-    {'n_estimators': [3, 10, 30, 60, 90], 'max_features': [50, 100, 150, 200, 250, 300]},
-    {'bootstrap': [True], 'n_estimators': [3, 10, 30, 60, 90], 'max_features': [50, 100, 150, 200, 250]},
+    {'n_estimators': [3, 10, 30, 60, 90], 'max_features': [50,100,150,200,250,300]},
+    {'bootstrap': [True], 'n_estimators': [3, 10, 30, 60, 90], 'max_features': [50,100,150,200,250]},
 ]
 forest_reg = RandomForestRegressor()
 grid_rf = GridSearchCV(forest_reg, param_grid, cv=5, scoring='neg_mean_squared_error')
@@ -154,4 +155,3 @@ print("Random Forest rmse : {}".format(forest_reg, X_test, Y_test))
 
 # ensemble
 ensemble = xgb.predict(X_test)*0.25 + lgb.predict(X_test)*0.25 + GBoost.predict(X_test)*0.5
-
