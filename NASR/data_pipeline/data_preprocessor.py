@@ -35,6 +35,14 @@ class PreProcessor:
 
         return train_x, train_y, test_x, test_y
 
+    def build_dataset2(self):
+        true_train, true_test = train_test_split(self.dataset, stratify=self.dataset['in_ch'], random_state = 100)
+        true_x, true_y = self.split_xy(true_train)
+        train, test = train_test_split(self.preprocess(), stratify=self.dataset['in_ch'], random_state=100)
+        train_x
+
+
+
     @staticmethod
     def save(x, filename):
         dump(x, "{}".format(filename))
@@ -76,5 +84,33 @@ class PreProcessor:
         # block type 전처리 안하니까.
         fitted = pd.DataFrame(preprocess.fit_transform(material), columns=material.columns[0:-3])
         fitted = pd.concat([material[["b_type_0", "b_type_1"]], fitted, latency], axis=1)
+
+        return fitted  # [fitted.b_type_1 == 1].drop(columns=["b_type_0", "b_type_1"])
+
+    def preprocess_wlatency(self):
+        '''
+        preprocessing!
+        :return standard->minmax input channel, robust->minmax prob, minmax latency
+        '''
+        material = self.dataset
+
+        prob = material.columns.difference(['b_type_0', 'b_type_1', 'latency', 'in_ch'], sort=False)
+        in_ch_lin = make_pipeline(StandardScaler(), \
+                                  QuantileTransformer(n_quantiles=100, output_distribution='normal'))
+        prob_lin = make_pipeline(MaxAbsScaler(), \
+                                 QuantileTransformer(n_quantiles=1000, output_distribution='normal'))
+
+        latency_lin = make_pipeline(RobustScaler(), \
+                                    QuantileTransformer(n_quantiles=1000, output_distribution='normal'))
+
+        preprocess = make_column_transformer(
+            (in_ch_lin, ['in_ch']),
+            (prob_lin, prob),
+            (latency_lin, ['latency'])
+        )
+
+        # block type 전처리 안하니까.
+        fitted = pd.DataFrame(preprocess.fit_transform(material), columns=material.columns[0:-2])
+        fitted = pd.concat([material[["b_type_0", "b_type_1"]], fitted], axis=1)
 
         return fitted  # [fitted.b_type_1 == 1].drop(columns=["b_type_0", "b_type_1"])
