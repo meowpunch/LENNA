@@ -87,6 +87,8 @@ class BaseModel:
 class BaseSearcher(GridSearchCV):
     """
         BaseSearcher for ElasticNetSearcher, MLPRegressorSearcher
+
+        TODO: ENETSearcher and MLPSearcher inherit this class
     """
 
     def __init__(
