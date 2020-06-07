@@ -5,76 +5,18 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import GridSearchCV
 from sklearn.neural_network import MLPRegressor
 
+from model.parent import BaseModel
 from util.logger import init_logger
 from util.visualize import draw_hist
 
 
-class MLPRegressorModel:
+class MLPRegressorModel(BaseModel):
     """
         MLPRegressor
     """
 
     def __init__(self, bucket_name, x_train, y_train, params=None):
-        # logger
-        self.logger = init_logger()
-
-        # s3
-        self.s3_manager = None
-
-        if params is None:
-            self.model = MLPRegressor()
-        else:
-            self.model = MLPRegressor(**params)
-
-        self.x_train, self.y_train = x_train, y_train
-
-        self.error = None
-        self.metric = None
-
-    def fit(self):
-        self.model.fit(self.x_train, self.y_train)
-
-    def predict(self, X):
-        return self.model.predict(X=X)
-
-    def estimate_metric(self, scorer, y_true, y_pred):
-        self.error = pd.Series(y_true - y_pred).rename("error")
-        true = pd.Series(y_true)
-
-        plt.figure()
-        err_ratio = (abs(self.error) / true) * 100
-        # err_ratio.plot()
-        plt.scatter(x=true, y=err_ratio)
-        plt.show()
-
-        self.metric = scorer(y_true=y_true, y_pred=y_pred)
-        return self.metric
-
-    def score(self):
-        return self.model.score(self.x_train, self.y_train)
-
-    def save(self, prefix):
-        """
-            save beta coef, metric, distribution, model
-        :param prefix: dir
-        """
-        self.save_metric(key="mlp_metric.pkl".format(prefix=prefix))
-        self.save_error_distribution(prefix=prefix)
-        self.save_model(key="mlp_model.pkl".format(prefix=prefix))
-
-    def save_metric(self, key):
-        self.logger.info("metric is {metric}".format(metric=self.metric))
-        # self.s3_manager.save_dump(x=self.metric, key=key)
-
-    def save_model(self, key):
-        # self.s3_manager.save_dump(self.model, key=key)
-        pass
-
-    def save_error_distribution(self, prefix):
-        draw_hist(self.error)
-        # self.s3_manager.save_plt_to_png(
-        #     key="{prefix}/image/error_distribution.png".format(prefix=prefix)
-        # )
+        super().__init__(bucket_name, x_train, y_train, params, MLPRegressor)
 
 
 class MLPRegressorSearcher(GridSearchCV):

@@ -7,12 +7,12 @@ from sklearn.metrics import mean_absolute_error
 
 from sklearn.model_selection import train_test_split
 
+from feature_extraction_pipeline.data_preprocessor import PreProcessor
 from model.elastic_net import ElasticNetModel, ElasticNetSearcher
 from model.mlp_regressor import MLPRegressorModel, MLPRegressorSearcher
 from util.logger import init_logger
-from data_pipeline.data_preprocessor import PreProcessor
 
-border = '-' * 50
+border = '-' * 30
 
 
 class LatencyPredictModelPipeline:
@@ -21,7 +21,8 @@ class LatencyPredictModelPipeline:
         self.logger = init_logger()
         self.date = datetime.datetime.now().strftime("%m%Y")
 
-        self.dataset = PreProcessor(filename=dataset_name).process()  # self.build_dataset(filename=dataset_name)
+        self.PreProcessor = PreProcessor(filename=dataset_name)
+        self.dataset = self.PreProcessor.process()  # self.build_dataset(filename=dataset_name)
 
     @staticmethod
     def split_xy(df: pd.DataFrame):
@@ -154,7 +155,7 @@ class LatencyPredictModelPipeline:
         # predict & metric
         pred_y = model.predict(X=test_x)
         r_test, r_pred = self.inverse_latency(test_y), self.inverse_latency(pred_y)
-        metric = model.estimate_metric(scorer=mean_absolute_error, y_true=r_test, y_pred=r_pred)
+        metric = model.estimate_metric(scorer=mean_absolute_error, x_true=test_x, y_true=r_test, y_pred=r_pred)
         # metric = model.estimate_metric(scorer=mean_absolute_error, y_true=test_y, y_pred=pred_y)
 
         # save

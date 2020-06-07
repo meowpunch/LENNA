@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler, Ro
 
 
 class PreProcessor:
-    def __init__(self, filename="../final_data.csv"):
+    def __init__(self, filename="../final_data"):
         # apply one-hot encoding to dataset
         self.dataset = pd.get_dummies(pd.read_csv(filename), columns=["b_type"])
 
@@ -45,7 +45,7 @@ class PreProcessor:
 
     @staticmethod
     def save(x, filename):
-        dump(x, "{}".format(filename))
+        dump(x, "../{}".format(filename))
 
     def latency_preprocess(self, latency):
         robust, quantile = RobustScaler(), QuantileTransformer(n_quantiles=1000,
@@ -85,6 +85,7 @@ class PreProcessor:
         fitted = pd.DataFrame(preprocess.fit_transform(material), columns=material.columns[0:-3])
         fitted = pd.concat([material[["b_type_0", "b_type_1"]], fitted, latency], axis=1)
 
+<<<<<<< HEAD
         return fitted  # [fitted.b_type_1 == 1].drop(columns=["b_type_0", "b_type_1"])
 
     def preprocess_wlatency(self):
@@ -113,3 +114,8 @@ class PreProcessor:
         fitted = pd.concat([material[["b_type_0", "b_type_1"]], fitted], axis=1)
 
         return fitted  # [fitted.b_type_1 == 1].drop(columns=["b_type_0", "b_type_1"])
+=======
+        print(fitted.head(3))
+        return fitted[fitted.b_type_1 == 1].drop(columns=["b_type_0", "b_type_1"])
+
+>>>>>>> d50f9753dc48a23bdbfd960c25c7eb23fe3c6040
