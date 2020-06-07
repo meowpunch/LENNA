@@ -9,9 +9,9 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler, Ro
 
 
 class PreProcessor:
-    def __init__(self):
+    def __init__(self, filename="../final_data"):
         # apply one-hot encoding to dataset
-        self.dataset = pd.get_dummies(pd.read_csv("final_data"), columns=["b_type"])
+        self.dataset = pd.get_dummies(pd.read_csv(filename), columns=["b_type"])
 
     def process(self):
         return self.build_dataset()
