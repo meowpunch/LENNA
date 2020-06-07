@@ -8,37 +8,18 @@ from sklearn.linear_model import ElasticNet
 from sklearn.metrics import make_scorer, mean_squared_error
 from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
 
+from model.parent import BaseModel, BaseSearcher
 from util.logger import init_logger
 from util.visualize import draw_hist
 
 
-class ElasticNetModel:
+class ElasticNetModel(BaseModel):
     """
         ElasticNet
     """
 
     def __init__(self, bucket_name: str, x_train, y_train, params=None):
-        # logger
-        self.logger = init_logger()
-
-        # s3
-        self.s3_manager = None
-
-        if params is None:
-            self.model = ElasticNet()
-        else:
-            self.model = ElasticNet(**params)
-
-        self.x_train, self.y_train = x_train, y_train
-
-        self.error = None
-        self.metric = None
-
-    def fit(self):
-        self.model.fit(self.x_train, self.y_train)
-
-    def predict(self, X):
-        return self.model.predict(X=X)
+        super().__init__(bucket_name, x_train, y_train, params, ElasticNet)
 
     @property
     def coef_df(self):
@@ -49,19 +30,6 @@ class ElasticNetModel:
             data=np.append(self.model.coef_, self.model.intercept_),
             index=self.x_train.columns.tolist() + ["intercept"],
         ).rename("beta").reset_index().rename(columns={"index": "column"})
-
-    def estimate_metric(self, scorer, y_true, y_pred):
-        self.error = pd.Series(y_true - y_pred).rename("error")
-        true = pd.Series(y_true)
-
-        plt.figure()
-        err_ratio = (abs(self.error) / true) * 100
-        # err_ratio.plot()
-        plt.scatter(x=true, y=err_ratio)
-        plt.show()
-
-        self.metric = scorer(y_true=y_true, y_pred=y_pred)
-        return self.metric
 
     def save(self, prefix):
         """
@@ -77,36 +45,13 @@ class ElasticNetModel:
         self.logger.info("beta_coef:\n{coef}".format(coef=self.coef_df))
         self.coef_df.to_csv("coef".format(key))
 
-    def save_metric(self, key):
-        self.logger.info("metric is {metric}".format(metric=self.metric))
-        # self.s3_manager.save_dump(x=self.metric, key=key)
 
-    def save_model(self, key):
-        # save best elastic net
-        # self.s3_manager.save_dump(self.best_estimator_, key=key)
-        pass
-
-    def save_error_distribution(self, prefix):
-        draw_hist(self.error)
-        # self.s3_manager.save_plt_to_png(
-        #     key="{prefix}/image/error_distribution.png".format(prefix=prefix))
-
-    # ratio = hit_ratio_error(self.error)
-        # self.s3_manager.save_plt_to_png(
-        #     key="{prefix}/image/hit_ratio_error.png".format(prefix=prefix)
-        # )
-        # return ratio
-
-
-class ElasticNetSearcher(GridSearchCV):
+class ElasticNetSearcher(BaseSearcher):
     """
         for research
     """
 
-    def __init__(
-            self, x_train, y_train, bucket_name,
-            grid_params=None, score=mean_squared_error
-    ):
+    def __init__(self, x_train, y_train, bucket_name, grid_params=None, score=mean_squared_error):
         if grid_params is None:
             grid_params = {
                 "max_iter": [1, 5, 10],
@@ -127,11 +72,9 @@ class ElasticNetSearcher(GridSearchCV):
         # logger
         self.logger = init_logger()
 
-        super().__init__(
-            estimator=ElasticNet(),
-            param_grid=grid_params,
-            scoring=make_scorer(self.scorer, greater_is_better=False)
-        )
+        super().__init__(x_train, y_train, bucket_name, grid_params, score, ElasticNet)
+
+
 
     def fit(self, X=None, y=None, groups=None, **fit_params):
         super().fit(X=self.x_train, y=self.y_train)

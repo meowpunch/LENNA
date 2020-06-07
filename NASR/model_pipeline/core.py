@@ -154,7 +154,7 @@ class LatencyPredictModelPipeline:
         # predict & metric
         pred_y = model.predict(X=test_x)
         r_test, r_pred = self.inverse_latency(test_y), self.inverse_latency(pred_y)
-        metric = model.estimate_metric(scorer=mean_absolute_error, y_true=r_test, y_pred=r_pred)
+        metric = model.estimate_metric(scorer=mean_absolute_error, x_true=test_x, y_true=r_test, y_pred=r_pred)
         # metric = model.estimate_metric(scorer=mean_absolute_error, y_true=test_y, y_pred=pred_y)
 
         # save
