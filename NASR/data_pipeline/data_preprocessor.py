@@ -90,7 +90,6 @@ class PreProcessor:
     def preprocess_wlatency(self):
         '''
         preprocessing!
-        :return standard->minmax input channel, robust->minmax prob, minmax latency
         '''
         material = self.dataset
 
