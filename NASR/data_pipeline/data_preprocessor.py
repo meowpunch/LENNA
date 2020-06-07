@@ -16,6 +16,9 @@ class PreProcessor:
     def process(self):
         return self.build_dataset()
 
+    def process2(self):
+        return self.build_dataset2()
+
     @staticmethod
     def split_xy(df: pd.DataFrame):
         # return df[["b_type_0", "b_type_1", "in_ch"]], df["latency"]
@@ -36,12 +39,12 @@ class PreProcessor:
         return train_x, train_y, test_x, test_y
 
     def build_dataset2(self):
-        true_train, true_test = train_test_split(self.dataset, stratify=self.dataset['in_ch'], random_state = 100)
-        true_x, true_y = self.split_xy(true_train)
-        train, test = train_test_split(self.preprocess(), stratify=self.dataset['in_ch'], random_state=100)
-        train_x
+        self.dataset = self.preprocess_wlatency()
+        train, test = train_test_split(self.dataset, stratify=self.dataset["in_ch"])
+        train_x, train_y = self.split_xy(train)
+        test_x, test_y = self.split_xy(test)
 
-
+        return train_x, train_y, test_x, test_y
 
     @staticmethod
     def save(x, filename):
@@ -112,8 +115,3 @@ class PreProcessor:
         fitted = pd.concat([material[["b_type_0", "b_type_1"]], fitted], axis=1)
 
         return fitted  # [fitted.b_type_1 == 1].drop(columns=["b_type_0", "b_type_1"])
-=======
-        print(fitted.head(3))
-        return fitted[fitted.b_type_1 == 1].drop(columns=["b_type_0", "b_type_1"])
-
->>>>>>> d50f9753dc48a23bdbfd960c25c7eb23fe3c6040
