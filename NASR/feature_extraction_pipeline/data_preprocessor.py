@@ -9,9 +9,11 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler, Ro
 
 
 class PreProcessor:
-    def __init__(self):
+    def __init__(self, filename="../final_data.csv"):
         # apply one-hot encoding to dataset
-        self.dataset = pd.get_dummies(pd.read_csv("../final_data.csv"), columns=["b_type"])
+        self.dataset = pd.get_dummies(pd.read_csv(filename), columns=["b_type"])
+        self.o_test = None
+        self.o_train = None
 
     def process(self):
         return self.build_dataset()
@@ -27,17 +29,24 @@ class PreProcessor:
         :return: train Xy, test Xy
         """
         # preprocessing
-        self.dataset = self.preprocess()
+        processed_dataset = self.preprocess()
         # split
-        train, test = train_test_split(self.dataset, stratify=self.dataset["in_ch"])
+
+        self.o_train, self.o_test = train_test_split(self.dataset, stratify=self.dataset["in_ch"], random_state=100)
+        train, test = train_test_split(processed_dataset, stratify=processed_dataset["in_ch"], random_state=100)
         train_x, train_y = self.split_xy(train)
         test_x, test_y = self.split_xy(test)
 
         return train_x, train_y, test_x, test_y
 
+    def build_dataset2(self):
+        X, y = self.split_xy(self.preprocess())
+        X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=X["in_ch"], shuffle=False)
+        return X_train, y_train, X_test, y_train
+
     @staticmethod
     def save(x, filename):
-        dump(x, "../{}".format(filename))
+        dump(x, "{}".format(filename))
 
     def latency_preprocess(self, latency):
         robust, quantile = RobustScaler(), QuantileTransformer(n_quantiles=1000,
@@ -77,5 +86,4 @@ class PreProcessor:
         fitted = pd.DataFrame(preprocess.fit_transform(material), columns=material.columns[0:-3])
         fitted = pd.concat([material[["b_type_0", "b_type_1"]], fitted, latency], axis=1)
 
-        print(fitted.head(3))
-        return fitted[fitted.b_type_1 == 1].drop(columns=["b_type_0", "b_type_1"])
+        return fitted  # [fitted.b_type_1 == 1].drop(columns=["b_type_0", "b_type_1"])
