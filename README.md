@@ -1,10 +1,4 @@
 # LENNA
 Latency Estimation for Neural Network Architecture 
 
-
-
-predict-latency/
-all model form https://github.com/kuangliu/pytorch-cifar
-
-NASR/
-code by Joonsang Yu
+[notion](https://www.notion.so/f44624493796475984f9651728b225d7)
