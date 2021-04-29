@@ -7,8 +7,10 @@ __pycache__
 *.zip
 *.pkl
 
-predict-latency/data-generator/data
+backup/predict-latency/data-generator/data
 result/
 data/
 cifar/
 .ipynb_checkpoints/
+
+venv/
