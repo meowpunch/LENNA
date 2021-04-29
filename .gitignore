@@ -7,7 +7,7 @@ __pycache__
 *.zip
 *.pkl
 
-backup/predict-latency/data-generator/data
+src/submissions/prepractice/data-generator/data
 result/
 data/
 cifar/
