@@ -9,15 +9,13 @@ All progress is in [Notion Pages KR](https://www.notion.so/f44624493796475984f96
 
 ## ABSTRACTION
 
-### Introduction3
-
+### Introduction
 The project upgrades Differentiable Architecture Search (DARTS), which is known as high performance model in Neural Architecture Search (NAS), by a new, never before method. 
 DARTS addresses comparable technique with state-of-the-art NAS (Neural Architecture Search) but has a latent flaw that it does not take direct metrics, such as latency, into accounting for model design.
 Our method tries to improve hardware performance by attaching latency element into loss function of DARTS, thereby makes DARTS of more efficiency that also takes latency into account using gradient search. 
 It seeks to improve performance by upgrading DARTS, which used to be well-known NAS model, and in the process, it does not simply measure hardware metrics but uses expected latency value by using self-made deep learning models.
 
 ### Overview
-
 <img width="100%" alt="image" src="https://user-images.githubusercontent.com/40639955/116496223-85bf1d00-a8df-11eb-8a45-19519e006c8d.png">
 `𝑳𝒐𝒔𝒔 = 𝑳𝒐𝒔𝒔(𝑫𝑨𝑹𝑻𝑺)+ 𝝀 ∗ (𝒆𝒙𝒑𝒆𝒄𝒕𝒆𝒅 𝒍𝒂𝒕𝒆𝒏𝒄𝒚)`
 
