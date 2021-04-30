@@ -94,10 +94,10 @@ On `/latency_by_binary_gates.ipynb`
   
   <img width="50%" alt="image" src="https://user-images.githubusercontent.com/40639955/116663226-c4350480-a9d1-11eb-8587-9403ceef38a3.png">
 
-### Methodology
-- How many times do we need to estimate latency when resetting the binary gate?
-- How to handle poping values .
-- L(one block) = sum(latency of ops of the block)
+#### ELSE
+- [Data Parallel](https://www.notion.so/DataParallel-6ef5d337ef8b4fbdafc26d4ca00e34b2)
+- [How to handle poping values? is there periodicity?](https://www.notion.so/08a9e811d6614cb8a1d4de43ca72caf8)
+- [L(one block) = sum(latency of ops of the block)](https://www.notion.so/L-one-block-sum-latency-of-ops-of-the-block-bb688a12afd743ae881b6589a7424a21)
 
 ### Modeling
 - Elastic Net
