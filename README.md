@@ -1,3 +1,20 @@
+```
+     ,--,                                                       
+  ,---.'|                      ,--.         ,--.                
+  |   | :       ,---,.       ,--.'|       ,--.'|   ,---,        
+  :   : |     ,'  .' |   ,--,:  : |   ,--,:  : |  '  .' \       
+  |   ' :   ,---.'   |,`--.'`|  ' :,`--.'`|  ' : /  ;    '.     
+  ;   ; '   |   |   .'|   :  :  | ||   :  :  | |:  :       \    
+  '   | |__ :   :  |-,:   |   \ | ::   |   \ | ::  |   /\   \   
+  |   | :.'|:   |  ;/||   : '  '; ||   : '  '; ||  :  ' ;.   :  
+  '   :    ;|   :   .''   ' ;.    ;'   ' ;.    ;|  |  ;/  \   \ 
+  |   |  ./ |   |  |-,|   | | \   ||   | | \   |'  :  | \  \ ,' 
+  ;   : ;   '   :  ;/|'   : |  ; .''   : |  ; .'|  |  '  '--'   
+  |   ,/    |   |    \|   | '`--'  |   | '`--'  |  :  :         
+  '---'     |   :   .''   : |      '   : |      |  | ,'         
+            |   | ,'  ;   |.'      ;   |.'      `--''           
+            `----'    '---'        '---'                        
+```
 
 03.2020 - 06. 2020  | zenith-lee, pyossyoung, meowpunch | *supported by Accelerated Computing Systems Lab, Yonsei Univ.*
 
@@ -69,11 +86,14 @@ analysis.binary_gates 중
 #### SNAPSHOT
 On `/latency_by_binary_gates.ipynb`
 - figure 1) cumulative latency
-![image](https://user-images.githubusercontent.com/40639955/116663119-a23b8200-a9d1-11eb-8209-076c82451e60.png)
+  
+  <img width="50%" alt="image" src="https://user-images.githubusercontent.com/40639955/116663119-a23b8200-a9d1-11eb-8209-076c82451e60.png">
 - figure 2) cumulative average
-![image](https://user-images.githubusercontent.com/40639955/116663184-b7181580-a9d1-11eb-9fa7-3ef763a5ea1a.png)
+  
+  <img width="50%" alt="image" src="https://user-images.githubusercontent.com/40639955/116663184-b7181580-a9d1-11eb-9fa7-3ef763a5ea1a.png">
 - figure 3) cumulative error
-![image](https://user-images.githubusercontent.com/40639955/116663226-c4350480-a9d1-11eb-8587-9403ceef38a3.png)
+  
+  <img width="50%" alt="image" src="https://user-images.githubusercontent.com/40639955/116663226-c4350480-a9d1-11eb-8587-9403ceef38a3.png">
 
 ### Methodology
 - How many times do we need to estimate latency when resetting the binary gate?
