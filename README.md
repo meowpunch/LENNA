@@ -66,10 +66,9 @@ num_layer is fixed, 5 -> 167 dimension
 - input_channel: 1~1000 (Caution `RuntimeError: CUDA out of memory`)
 - arhitecture parameters: random on unifrom distribution
 
-![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/b4bc9216-307e-47de-ae9b-0d9c3d629f9d/Untitled.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/b4bc9216-307e-47de-ae9b-0d9c3d629f9d/Untitled.png)
+[Init ratio for arch param [KR]](https://www.notion.so/Init-ratio-for-arch-param-d331d8f8c9434c268be8434c406ed8b8)
 
-* [Init ratio for arch param [KR]](https://www.notion.so/Init-ratio-for-arch-param-d331d8f8c9434c268be8434c406ed8b8)
-* [How to generate param? [KR]](https://www.notion.so/How-to-generate-param-218f7c8bb3c04c2891f280be837456a9)
+[How to generate param? [KR]](https://www.notion.so/How-to-generate-param-218f7c8bb3c04c2891f280be837456a9)
 
 ### Target y
 
@@ -78,10 +77,10 @@ num_layer is fixed, 5 -> 167 dimension
 analysis.binary_gates 중
 
 1. whenever reset binary gate, accumlate a median(40%) value of estimated latencies 10 times. (figure 1) 
-  - [How many times do you need to estimate latency when resetting the binary gate? [KR]](https://www.notion.so/How-many-times-do-you-need-to-estimate-latency-when-resetting-the-binary-gate-9c138302f8fc408b8eac9129d0658a11)
-2. average of cumulative latency. (figure 2)
-3. error of the cumulatvie average and the previous one. (figure 3)
-4. if the error hits continuously 10 times that are less than 1%, stop and use that error.
+     - [How many times do you need to estimate latency when resetting the binary gate? [KR]](https://www.notion.so/How-many-times-do-you-need-to-estimate-latency-when-resetting-the-binary-gate-9c138302f8fc408b8eac9129d0658a11)
+3. average of cumulative latency. (figure 2)
+4. error of the cumulatvie average and the previous one. (figure 3)
+5. if the error hits continuously 10 times that are less than 1%, stop and use that error.
 
 #### SNAPSHOT
 On `/latency_by_binary_gates.ipynb`
