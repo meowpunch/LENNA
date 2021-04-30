@@ -54,7 +54,7 @@ the project includes followings:
 - CPU: AMD Ryzen 7 3700X 8-core Processor * 16 
 - GPU: GeForce RTX 2060 SUPER * 4
 
-## Data Generator
+## [Data Generator](https://www.notion.so/798b709c28a949d28e840f331b849f6c)
 
 batch_size: 64
 
@@ -98,7 +98,6 @@ On `/latency_by_binary_gates.ipynb`
 - How many times do we need to estimate latency when resetting the binary gate?
 - How to handle poping values .
 - L(one block) = sum(latency of ops of the block)
-
 
 ### Modeling
 - Elastic Net
