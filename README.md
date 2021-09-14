@@ -16,7 +16,9 @@
             `----'    '---'        '---'                        
 ```
 
-03.2020 - 06. 2020  | zenith-lee, pyossyoung, meowpunch | *supported by Accelerated Computing Systems Lab, Yonsei Univ.*
+03.2020 - 06. 2020  | zenith-lee, pyossyoung, meowpunch
+
+*supported by Accelerated Computing Systems Lab, Yonsei Univ.*
 
 LENNA (Latency Estimation for Neural Network Architecture) upgrades Differentiable Architecture Search (DARTS), which is known as high performance model in Neural Architecture Search (NAS)
 
